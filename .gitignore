@@ -1,0 +1,14 @@
+# Source material stays local: large originals (GitHub's 100 MB file limit) and internal documents.
+# The website only needs the optimised copies in docs/assets/img (see scripts/prepare_assets.py).
+/DAMA Branding Materials/
+/DAMA Media Assets/
+/DAMA Website V1.0 – Figma Make_files/
+/DAMA Website V1.0 – Figma Make.html
+
+# Local screenshots and tooling
+/screenshots/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop.ini

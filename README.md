@@ -1,5 +1,7 @@
 # DAMA Kuala Lumpur & Selangor website
 
+> **New:** the website and the membership system now live together in [`web/`](web/README.md) (Next.js app with sign-up, member portal, admin, receipts). The `docs/` folder below is the earlier static version still published on GitHub Pages until the app is deployed.
+
 Static website for DAMA Chapter Malaysia – Kuala Lumpur & Selangor. Plain HTML, CSS and JavaScript: no build step, no frameworks.
 
 ## Preview

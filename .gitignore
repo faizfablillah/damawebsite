@@ -2,8 +2,14 @@
 # The website only needs the optimised copies in docs/assets/img (see scripts/prepare_assets.py).
 /DAMA Branding Materials/
 /DAMA Media Assets/
+/DAMA Malaysia Board of Directors/
 /DAMA Website V1.0 – Figma Make_files/
 /DAMA Website V1.0 – Figma Make.html
+# Reference documents (bank details, personal data): never commit
+/*.pdf
+/*.jpeg
+/*.jpg
+/*.png
 
 # Local screenshots and tooling
 /screenshots/

@@ -49,7 +49,8 @@ npx next build; $env:E2E_PROD=1; npx playwright test tests/membership.spec.ts   
 | `SUPER_ADMIN_EMAILS` | yes | Comma-separated emails that become super admin on sign-up/login |
 | `DATABASE_URL` | yes | Postgres connection string (Supabase “transaction pooler”, port 6543). Migrations run automatically on start |
 | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | yes | Private file storage for payment proofs and documents (Supabase Storage S3 keys work) |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | yes | Sending email. Gmail: `smtp.gmail.com`, `465`, the Gmail address and an **app password** |
+| `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_SENDER` | one email option | Sending email through Microsoft 365 (Graph API): an app registration with the **Mail.Send** application permission (admin consent). Takes priority over SMTP |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | one email option | Sending email. Gmail: `smtp.gmail.com`, `465`, the Gmail address and an **app password** |
 | `CRON_SECRET` | yes | Protects `/api/cron/daily`; the scheduler sends `Authorization: Bearer <secret>` |
 | `BANK_NAME`, `BANK_ACCOUNT_NAME`, `BANK_ACCOUNT_NUMBER` | optional | Starting bank details (editable later in Admin → Settings) |
 | `DATA_DIR` | no | Local data folder (default `.data`) |

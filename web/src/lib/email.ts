@@ -4,8 +4,9 @@ import path from "node:path";
 import { DATA_DIR, getDb, schema } from "@/db";
 import { APP_URL, ORG } from "./config";
 
-// Sends through SMTP when SMTP_HOST is set (e.g. Gmail: smtp.gmail.com + app password).
-// Otherwise writes each email to DATA_DIR/outbox so it can be inspected during development and tests.
+// Sends through Microsoft 365 (Graph API) when MS_TENANT_ID is set, or SMTP when SMTP_HOST is set
+// (e.g. Gmail: smtp.gmail.com + app password). Otherwise writes each email to DATA_DIR/outbox so it
+// can be inspected during development and tests.
 
 type Attachment = { filename: string; content: Buffer; contentType: string };
 type Mail = { subject: string; html: string; text: string };
@@ -75,12 +76,61 @@ export const templates = {
 
 export type TemplateName = keyof typeof templates;
 
+export const emailConfigured = () => !!(process.env.MS_TENANT_ID || process.env.SMTP_HOST);
+
+// Microsoft Graph: an app registration with the Mail.Send application permission sends as MS_SENDER
+let graphToken: { value: string; expires: number } | null = null;
+
+async function graphAccessToken(): Promise<string> {
+  if (graphToken && graphToken.expires > Date.now() + 60_000) return graphToken.value;
+  const res = await fetch(`https://login.microsoftonline.com/${process.env.MS_TENANT_ID}/oauth2/v2.0/token`, {
+    method: "POST",
+    body: new URLSearchParams({
+      client_id: process.env.MS_CLIENT_ID ?? "",
+      client_secret: process.env.MS_CLIENT_SECRET ?? "",
+      scope: "https://graph.microsoft.com/.default",
+      grant_type: "client_credentials",
+    }),
+  });
+  const json = (await res.json()) as { access_token?: string; expires_in?: number; error_description?: string };
+  if (!res.ok || !json.access_token) throw new Error(`Microsoft sign-in failed: ${json.error_description ?? res.status}`);
+  graphToken = { value: json.access_token, expires: Date.now() + (json.expires_in ?? 3600) * 1000 };
+  return graphToken.value;
+}
+
+async function sendWithGraph(to: string, m: Mail, attachments: Attachment[]) {
+  const sender = process.env.MS_SENDER ?? "";
+  const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(sender)}/sendMail`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await graphAccessToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: {
+        subject: m.subject,
+        body: { contentType: "HTML", content: m.html },
+        from: { emailAddress: { address: sender, name: ORG.shortName } },
+        toRecipients: [{ emailAddress: { address: to } }],
+        replyTo: [{ emailAddress: { address: ORG.email } }],
+        attachments: attachments.map((a) => ({
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          name: a.filename,
+          contentType: a.contentType,
+          contentBytes: a.content.toString("base64"),
+        })),
+      },
+      saveToSentItems: false,
+    }),
+  });
+  if (!res.ok) throw new Error(`Microsoft Graph ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
 export async function sendEmail(to: string, template: TemplateName, m: Mail, links: Links = {}, attachments: Attachment[] = []) {
   const db = await getDb();
   let status: "sent" | "failed" = "sent";
   let error: string | null = null;
   try {
-    if (process.env.SMTP_HOST) {
+    if (process.env.MS_TENANT_ID) {
+      await sendWithGraph(to, m, attachments);
+    } else if (process.env.SMTP_HOST) {
       const nodemailer = (await import("nodemailer")).default;
       const transport = nodemailer.createTransport({
         host: process.env.SMTP_HOST,

@@ -3,12 +3,13 @@ import path from "node:path";
 import { notFound } from "next/navigation";
 import { AppHero } from "@/components/ui";
 import { DATA_DIR } from "@/db";
+import { emailConfigured } from "@/lib/email";
 
 export const metadata = { title: "Local inbox" };
 
 // Local testing only: shows the emails that would have been sent (when SMTP isn't configured).
 export default async function OutboxPage() {
-  if (process.env.NODE_ENV === "production" || process.env.SMTP_HOST) notFound();
+  if (process.env.NODE_ENV === "production" || emailConfigured()) notFound();
   const dir = path.join(DATA_DIR, "outbox");
   const items = fs.existsSync(dir)
     ? fs

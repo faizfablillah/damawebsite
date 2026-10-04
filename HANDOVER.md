@@ -11,7 +11,7 @@ This file is the single place to pick the project up again: what exists, why it 
 | Piece | Where | Status |
 |---|---|---|
 | Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages (contact email fixed to info.damamalaysia@gmail.com). |
-| Website + membership system | `web/` (Next.js app) | **Built and tested, not deployed.** Runs locally with `npm run dev`. |
+| Website + membership system | `web/` (Next.js app) | **Live for board testing** at https://dama-malaysia.vercel.app (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
 | Automated tests | `web/tests/` | 12 end-to-end tests, all passing. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 
@@ -145,7 +145,9 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 
 ## 9. Open items / next steps
 
-- [ ] **Deploy** (§8) — waiting on Supabase, Vercel and Gmail app password.
+- [x] **Deployed** 4 Oct 2026 for board testing: Vercel project `dama-malaysia` (root `web`, GitHub-linked), Supabase project `dama-malaysia` (Singapore, private bucket `dama-files`), email via Microsoft 365 Graph as faiz@keppstone.onmicrosoft.com (Entra app "DAMA website", Mail.Send; client secret expires Oct 2028). Secrets: git-ignored `web/.env.production.local` + Vercel.
+- [ ] Switch email to info.damamalaysia@gmail.com once accessible (remove `MS_*`, add `SMTP_*` in Vercel). Restrict the Entra app to one mailbox (tenant has 16 users).
+- [ ] Upgrade Vercel to **Pro** before real members pay; later move Vercel/Supabase to DAMA-owned accounts.
 - [ ] Replace placeholder **testimonials**; review **event write-ups**.
 - [ ] Get full-resolution **board headshots** and AFED / Launchpad / MMU event photos (current ones are extracted from the Infopack PDF).
 - [ ] **TIN** for receipts — not verified; confirm with the Treasurer/VP Finance (receipt currently shows ROS no. only).

@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 4 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 4 October 2026 (evening). Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -111,7 +111,7 @@ PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
 - **Auth:** own implementation — bcrypt passwords, 30-day httpOnly session cookie (hashed in DB), email verification and reset tokens.
 - **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account or 30 per IP in 15 min → locked until the window passes or the password is reset; reset emails 3/hour per address (silent) and 10/hour per IP; sign-ups 20/hour per IP. Old rows pruned by the daily job.
 - **Files:** private storage (local disk, or any S3-compatible bucket such as Supabase Storage). Uploads checked by content (PDF/JPG/PNG/WEBP, ≤ 4 MB). Served only to admins or the owner.
-- **Email:** SMTP (Gmail app password planned) or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`.
+- **Email:** Microsoft 365 via the Graph API (`MS_*` settings — used now, sending as faiz@keppstone.onmicrosoft.com), or SMTP (`SMTP_*`, e.g. a Gmail app password for info.damamalaysia@gmail.com later), or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`. Replies always go to info.damamalaysia@gmail.com.
 - **PDF receipts:** pdfkit, generated from a stored snapshot (receipts never change after issue).
 - **Daily job:** `GET /api/cron/daily` with `Authorization: Bearer CRON_SECRET` (scheduled in `web/vercel.json`, 01:00 UTC).
 
@@ -132,12 +132,20 @@ npx next build; $env:E2E_PROD=1; npx playwright test tests/membership.spec.ts
 
 Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS` (currently faiz@keppstone.onmicrosoft.com), confirm via `/dev/outbox`.
 
-**Deployment plan (not done yet — needs the owner's logins):**
-1. **Supabase** (free): account under faiz@keppstone.onmicrosoft.com, project in Singapore. Need: transaction-pooler connection string (`DATABASE_URL`), a private storage bucket and its S3 keys.
-2. **Vercel**: same account; root directory `web`. Hobby (free) is fine for board testing but is **non-commercial only** — move to **Pro (~USD 20/month)** before real members pay.
-3. **Email**: Gmail **app password** for info.damamalaysia@gmail.com (requires 2-Step Verification on that account), or another sending address.
-4. Put secrets in a file (never paste them in chat), set them as Vercel environment variables (list in `web/README.md`), deploy, sign up as super admin, check Settings (prices, bank details), import existing members.
-5. Cut over: point the domain (later `dama.org.my`) to the app and retire `docs/` / GitHub Pages.
+**Production (deployed 4 Oct 2026, board testing):**
+
+| Piece | Where |
+|---|---|
+| Site | https://dama-malaysia.vercel.app |
+| Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
+| Database + files | Supabase project `dama-malaysia` (Singapore, ref `zzwgvnxywxclxjfyrjok`), transaction pooler port 6543, private bucket `dama-files` (S3 access key "vercel") |
+| Email | Microsoft Graph, Entra app **"DAMA website"** in the keppstone tenant (Mail.Send application permission, admin-consented; client secret valid to Oct 2028). ~100 external recipients/day limit for onmicrosoft.com senders; mail may land in Junk |
+| Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily` |
+| Secrets | git-ignored `web/.env.production.local` (all production values) + Vercel env vars (secrets marked sensitive) |
+
+Re-running the setup or changing a setting: edit `web/.env.production.local`, update the variable in Vercel (`npx vercel env add NAME production`), redeploy. Never paste secrets in chat — log in with `! npx vercel login`, `! az login`, or put values in the git-ignored files.
+
+**Still to do before real members pay:** upgrade Vercel to **Pro (~USD 20/month)** (Hobby is non-commercial only); wipe the board's test data; import existing members; later point `dama.org.my` at the app and retire `docs/` / GitHub Pages.
 
 Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pro (+ Supabase Pro later). Board's estimate was RM 3,050/year (~20 individual members).
 
@@ -146,7 +154,12 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 ## 9. Open items / next steps
 
 - [x] **Deployed** 4 Oct 2026 for board testing: Vercel project `dama-malaysia` (root `web`, GitHub-linked), Supabase project `dama-malaysia` (Singapore, private bucket `dama-files`), email via Microsoft 365 Graph as faiz@keppstone.onmicrosoft.com (Entra app "DAMA website", Mail.Send; client secret expires Oct 2028). Secrets: git-ignored `web/.env.production.local` + Vercel.
-- [ ] Switch email to info.damamalaysia@gmail.com once accessible (remove `MS_*`, add `SMTP_*` in Vercel). Restrict the Entra app to one mailbox (tenant has 16 users).
+- [ ] **Next session — first:** Faiz signs up at https://dama-malaysia.vercel.app/signup with faiz@keppstone.onmicrosoft.com (becomes super admin; no accounts exist yet), checks Admin → Settings, then does one full test run with a second email (join → upload proof → verify → receipt email). Claude then checks the email log / database for failures.
+- [ ] Send the board the testing message (draft agreed 4 Oct: link, test steps, check Junk, don't pay real money, test data wiped later, offer admin access to Eva (Membership admin) and Peggy (Finance), feedback deadline).
+- [ ] **Restrict the Entra app** to Faiz's mailbox only (Exchange Online application access policy / RBAC; the keppstone tenant has 16 users). Needs `Connect-ExchangeOnline` login by Faiz.
+- [ ] Switch email to info.damamalaysia@gmail.com once accessible (remove `MS_*`, add `SMTP_*` in Vercel).
+- [ ] Delete the Supabase CLI access token after setup (Supabase → Account → Access Tokens) and `web/.env.supabase-cli`.
+- [ ] Before launch: wipe test data from the production database; move Vercel/Supabase to DAMA-owned accounts (or consider Microsoft for Nonprofits — DAMA-owned tenant, possible Azure credits).
 - [ ] Upgrade Vercel to **Pro** before real members pay; later move Vercel/Supabase to DAMA-owned accounts.
 - [ ] Replace placeholder **testimonials**; review **event write-ups**.
 - [ ] Get full-resolution **board headshots** and AFED / Launchpad / MMU event photos (current ones are extracted from the Infopack PDF).

@@ -59,8 +59,10 @@ Never commit `.env.local` — it holds secrets.
 
 ## Deploying
 
+Currently deployed at **https://dama-malaysia.vercel.app** (Vercel project `dama-malaysia`, GitHub-linked, so every push to `main` redeploys). See `HANDOVER.md` §8 for the production details. To set it up again elsewhere:
+
 1. Create a Postgres database + a private storage bucket (e.g. Supabase) and copy the connection string and S3 keys.
-2. Create a Gmail app password for the sending address.
+2. Set up sending email: a Microsoft 365 app registration with the Mail.Send application permission (`MS_*`), or an SMTP account such as a Gmail app password (`SMTP_*`).
 3. Deploy this `web/` folder to a Node.js host (e.g. Vercel: root directory `web`), set the variables above.
 4. Schedule a daily `GET /api/cron/daily` with the bearer secret (Vercel Cron, or any external cron service).
 5. Sign up with the super admin email, then in **Admin → Settings** check prices and bank details.

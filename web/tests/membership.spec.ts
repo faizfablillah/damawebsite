@@ -315,7 +315,7 @@ test("settings, exports and roles", async ({ page }) => {
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByText("Settings saved.")).toBeVisible();
   await page.goto("/join");
-  await expect(page.getByText("RM 350.00")).toBeVisible();
+  await expect(page.locator(".tier-card .price", { hasText: /^RM 350 \/ year$/ })).toBeVisible();
   await page.goto("/admin/settings");
   await page.getByLabel("Individual pricing in use").selectOption("early_bird");
   await page.getByRole("button", { name: "Save settings" }).click();

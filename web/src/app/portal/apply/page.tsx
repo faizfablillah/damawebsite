@@ -4,7 +4,7 @@ import { AppHero, Notice } from "@/components/ui";
 import { ActionForm, Checkbox, Checkboxes, Field, Select, Submit, TextArea } from "@/components/form";
 import { requireVerifiedUser } from "@/lib/auth";
 import { COMM_PREFERENCES, CORPORATE_INTERESTS, CORPORATE_TIERS, isAcademicEmail, KEY_DATA_AREAS, ORG_SIZES, PDPA_CONSENT_TEXT, STATES, TIERS } from "@/lib/config";
-import { rm } from "@/lib/format";
+import { rmShort } from "@/lib/format";
 import { getSettings, priceFor } from "@/lib/settings";
 import { ACCEPT_ATTR } from "@/lib/storage";
 import { membershipsForUser } from "@/lib/queries";
@@ -35,7 +35,7 @@ export default async function ApplyPage({ searchParams }: PageProps<"/portal/app
       <AppHero eyebrow="Step 2 of 3" title={kind === "corporate" ? "Corporate membership application" : `${kind === "student" ? "Student" : "Individual"} membership application`}>
         {kind === "corporate"
           ? "Tell us about your organisation. After submitting you'll see our bank details to complete payment — or ask our PIC to contact you first."
-          : `Annual fee: ${rm(price!.unitPrice)}. After this step you'll see our bank details and upload your transfer receipt.`}
+          : `Annual fee: ${rmShort(price!.unitPrice)}. After this step you'll see our bank details and upload your transfer receipt.`}
       </AppHero>
       <div className="app-main">
         <div className="container narrow">
@@ -67,7 +67,7 @@ export default async function ApplyPage({ searchParams }: PageProps<"/portal/app
                       <label className="tier-option" key={t}>
                         <input type="radio" name="tier" value={t} defaultChecked={i === 0} />
                         <strong>{TIERS[t].label}</strong>
-                        <div className="price">{rm(priceFor(t, settings).unitPrice)}</div>
+                        <div className="price">{rmShort(priceFor(t, settings).unitPrice)}</div>
                         <small>Up to {TIERS[t].seats} seats · per year</small>
                       </label>
                     ))}
@@ -133,7 +133,7 @@ export default async function ApplyPage({ searchParams }: PageProps<"/portal/app
                 <Checkboxes name="preferences" label="I'd like to receive" options={COMM_PREFERENCES} defaults={COMM_PREFERENCES} />
                 <div className="consent">
                   <Checkbox name="confirmTier" required>
-                    I'm applying for <strong>{kind === "student" ? "Educational (Student)" : "Individual"} membership</strong> at <strong>{rm(price!.unitPrice)}</strong> per year
+                    I'm applying for <strong>{kind === "student" ? "Educational (Student)" : "Individual"} membership</strong> at <strong>{rmShort(price!.unitPrice)}</strong> per year
                     {kind === "student" ? ", and I'm currently enrolled at a recognised academic institution." : ", and I work in data management or a closely related field."}
                   </Checkbox>
                 </div>

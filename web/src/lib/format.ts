@@ -63,6 +63,10 @@ export function money(sen: number): string {
 }
 export const rm = (sen: number) => `RM ${money(sen)}`;
 
+// For plan prices: "RM 150" when there are no sen, otherwise "RM 150.50"
+export const rmShort = (sen: number) =>
+  sen % 100 ? rm(sen) : `RM ${(sen / 100).toLocaleString("en-MY", { maximumFractionDigits: 0 })}`;
+
 // "150" / "150.00" / "1,000" → sen
 export function parseRinggit(input: string): number | null {
   const n = Number(String(input).replace(/[^0-9.]/g, ""));

@@ -322,6 +322,9 @@ button, input, select, textarea { font: inherit; }
 .price-card__price { font-family: var(--font-head); color: #fff; font-size: 2.6rem; font-weight: 700; line-height: 1.1; padding-bottom: 18px; border-bottom: 1px solid rgba(255, 255, 255, .18); margin-bottom: 18px; }
 .price-card__price { white-space: nowrap; font-size: clamp(2rem, 3.2vw, 2.6rem); }
 .price-card__price small { display: block; margin-top: 6px; font-size: .95rem; font-weight: 400; color: #b6c2d9; }
+/* Same line height as the other plan prices so the dividers stay level */
+.price-card__price--range { font-size: clamp(1.6rem, 2.3vw, 2rem); line-height: calc(clamp(2rem, 3.2vw, 2.6rem) * 1.1); }
+.price-card__price--range small { line-height: 1.1; }
 .price-card__price sup { font-size: .5em; line-height: 0; vertical-align: super; }
 .price-card__target { color: var(--mint); font-weight: 600; margin-bottom: 10px; }
 .price-card__note { font-size: .82rem; font-style: italic; color: #93a3c1; margin-top: auto; padding-top: 14px; }

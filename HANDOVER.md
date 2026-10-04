@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 2 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 4 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -10,9 +10,9 @@ This file is the single place to pick the project up again: what exists, why it 
 
 | Piece | Where | Status |
 |---|---|---|
-| Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages. Still shows the old contact email `info@dama.org.my` (wrong — see §9). |
+| Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages (contact email fixed to info.damamalaysia@gmail.com). |
 | Website + membership system | `web/` (Next.js app) | **Built and tested, not deployed.** Runs locally with `npm run dev`. |
-| Automated tests | `web/tests/` | 11 end-to-end tests, all passing on dev and production builds. |
+| Automated tests | `web/tests/` | 12 end-to-end tests, all passing. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 
 ---
@@ -109,6 +109,7 @@ PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
 - **Next.js 16.3** (App Router, Server Actions, Turbopack) + React 19, TypeScript. Next 16 differs from older versions — read `web/node_modules/next/dist/docs/` before changing framework code (async `params`/`cookies()`, `proxy` instead of `middleware`).
 - **Database:** Drizzle ORM. Locally an embedded Postgres (PGlite) in `web/.data/`; in production any Postgres via `DATABASE_URL`. 17 tables (users, sessions, tokens, organisations, notes, documents, memberships, orders, payments, receipts, seats, seat requests, counters, settings, email log, renewal reminders, audit log). Money stored in sen.
 - **Auth:** own implementation — bcrypt passwords, 30-day httpOnly session cookie (hashed in DB), email verification and reset tokens.
+- **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account or 30 per IP in 15 min → locked until the window passes or the password is reset; reset emails 3/hour per address (silent) and 10/hour per IP; sign-ups 20/hour per IP. Old rows pruned by the daily job.
 - **Files:** private storage (local disk, or any S3-compatible bucket such as Supabase Storage). Uploads checked by content (PDF/JPG/PNG/WEBP, ≤ 4 MB). Served only to admins or the owner.
 - **Email:** SMTP (Gmail app password planned) or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`.
 - **PDF receipts:** pdfkit, generated from a stored snapshot (receipts never change after issue).
@@ -145,11 +146,9 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 ## 9. Open items / next steps
 
 - [ ] **Deploy** (§8) — waiting on Supabase, Vercel and Gmail app password.
-- [ ] Live GitHub Pages site (`docs/`) still shows `info@dama.org.my` — fix or retire once the app is live.
 - [ ] Replace placeholder **testimonials**; review **event write-ups**.
 - [ ] Get full-resolution **board headshots** and AFED / Launchpad / MMU event photos (current ones are extracted from the Infopack PDF).
 - [ ] **TIN** for receipts — not verified; confirm with the Treasurer/VP Finance (receipt currently shows ROS no. only).
-- [ ] Add **login rate-limiting / lockout** before launch.
 - [ ] Collect the spreadsheet of **existing paid members** (Eva / Peggy) and import it.
 - [ ] Decide admins and roles (PICs, finance) — currently only the owner.
 - [ ] Later options discussed: online payment gateway (Billplz / ToyyibPay / iPay88 / Stripe — needs a merchant account in the association's name), events/community, LMS, analytics, member badges, custom domain `dama.org.my`.
@@ -162,5 +161,7 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 - **Never query outside the transaction inside `db.transaction`** — the embedded local database has one connection and deadlocks (read settings before the transaction).
 - Admin actions redirect back with `?msg=` (shown by `Flash`) because the row/form that triggered them often disappears.
 - Windows/PowerShell: Node, Git and GitHub CLI were installed with winget; in a fresh tool shell reload PATH from the registry. The GitHub CLI token lacks the `workflow` scope, so GitHub Actions files can't be pushed (that's why Pages publishes from `docs/`).
-- Headless Edge screenshots can't go narrower than 540 px; Playwright (`tests/zz-screens.spec.ts`, `SCREENS=1`) gives true 390 px phone shots.
+- Headless Edge screenshots can't go narrower than 540 px; Playwright (`tests/zz-screens.spec.ts`, `SCREENS=1`) gives true 390 px phone shots, in screen-sized parts.
+- Grid columns holding tables must be `minmax(0, 1fr)` (not `1fr`), or the table stretches the page instead of scrolling inside `.table-scroll`.
+- `styles.css` loads after `app.css`, so app overrides of `.btn` / `.container` need a more specific selector (e.g. `.btn.btn--light`).
 - `npm` held back post-install scripts for esbuild / unrs-resolver; everything works without them.

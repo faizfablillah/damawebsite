@@ -29,10 +29,10 @@ export default async function AdminsPage() {
               <tbody>
                 {admins.map((a) => (
                   <tr key={a.id}>
-                    <td>{a.name}</td>
+                    <td className="nowrap">{a.name}</td>
                     <td>{a.email}</td>
-                    <td>{ROLE_LABEL[a.role]}</td>
-                    <td>{fmtDate(a.createdAt)}</td>
+                    <td className="nowrap">{ROLE_LABEL[a.role]}</td>
+                    <td className="nowrap">{fmtDate(a.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

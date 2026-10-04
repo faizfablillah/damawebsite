@@ -39,7 +39,7 @@ export default async function EmailsPage({ searchParams }: PageProps<"/admin/ema
             <tbody>
               {rows.map((e) => (
                 <tr key={e.id}>
-                  <td>{fmtDateTime(e.createdAt)}</td>
+                  <td className="nowrap">{fmtDateTime(e.createdAt)}</td>
                   <td>{e.toEmail}</td>
                   <td>{e.subject}</td>
                   <td>

@@ -55,7 +55,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
                   options={STATES.map((s) => ({ value: s.code, label: s.name }))}
                   hint="Used in your Member ID."
                 />
-                <div />
+                <div className="spacer" />
                 <Field name="password" label="Password" type="password" required autoComplete="new-password" hint="At least 8 characters." />
                 <Field name="confirmPassword" label="Confirm password" type="password" required autoComplete="new-password" />
               </div>

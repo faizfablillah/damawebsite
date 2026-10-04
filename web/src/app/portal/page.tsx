@@ -99,13 +99,13 @@ function History({ b }: { b: MembershipBundle }) {
               const r = receipts.find((x) => x.paymentId === p.id);
               return (
                 <tr key={p.id}>
-                  <td>{fmtDate(p.paymentDate)}</td>
+                  <td className="nowrap">{fmtDate(p.paymentDate)}</td>
                   <td>{o.description}</td>
                   <td className="num">{rm(p.amount)}</td>
                   <td>
                     <PaymentBadge status={p.status} />
                   </td>
-                  <td>{r ? <a href={`/receipts/${r.id}`}>{r.receiptNo}</a> : "—"}</td>
+                  <td className="nowrap">{r ? <a href={`/receipts/${r.id}`}>{r.receiptNo}</a> : "—"}</td>
                 </tr>
               );
             })}

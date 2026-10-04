@@ -26,7 +26,7 @@ export default async function ImportPage() {
         <section className="panel">
           <h2>File format</h2>
           <p className="muted-sm">One row per membership, with these columns (header row required):</p>
-          <ul className="check-list" style={{ fontSize: ".9rem" }}>
+          <ul className="code-chips">
             {IMPORT_COLUMNS.map((c) => (
               <li key={c}>
                 <code>{c}</code>

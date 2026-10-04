@@ -8,6 +8,7 @@ import { getSettings, priceFor } from "./settings";
 import { audit } from "./audit";
 import { sendEmail, templates } from "./email";
 import { receiptPdf } from "./receipt-pdf";
+import { pruneAttempts } from "./rate-limit";
 
 export class BusinessError extends Error {}
 
@@ -631,6 +632,7 @@ export async function refreshStatuses() {
 
 export async function runDailyTasks() {
   await refreshStatuses();
+  await pruneAttempts();
   const db = await getDb();
   const settings = await getSettings();
   const today = todayKL();

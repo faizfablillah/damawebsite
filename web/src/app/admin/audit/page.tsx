@@ -29,11 +29,16 @@ export default async function AuditPage() {
             <tbody>
               {rows.map(({ log, actor }) => (
                 <tr key={log.id}>
-                  <td>{fmtDateTime(log.createdAt)}</td>
+                  <td className="nowrap">{fmtDateTime(log.createdAt)}</td>
                   <td>{actor ?? "System"}</td>
-                  <td>{log.action}</td>
-                  <td className="muted-sm" style={{ maxWidth: 420, wordBreak: "break-word" }}>
-                    {log.details ? JSON.stringify(log.details) : ""}
+                  <td className="nowrap">{log.action}</td>
+                  <td className="muted-sm">
+                    {log.details && (
+                      <details className="audit-details">
+                        <summary>{JSON.stringify(log.details)}</summary>
+                        <pre>{JSON.stringify(log.details, null, 2)}</pre>
+                      </details>
+                    )}
                   </td>
                 </tr>
               ))}

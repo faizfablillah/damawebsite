@@ -82,7 +82,7 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
             {m.memberCode && <span className="badge badge--navy">{m.memberCode}</span>}
             <MembershipBadge status={m.status} />
             <EligibilityBadge status={m.eligibilityStatus} />
-            {org && <PipelineBadge status={org.pipelineStatus} />}
+            {org && <PipelineBadge status={org.pipelineStatus} prefix="Pipeline: " />}
           </div>
         </div>
         <dl className="kv">
@@ -403,39 +403,46 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
                   <tbody>
                     {b.seats.map((s) => (
                       <tr key={s.id}>
-                        <td>{seatCode(m.memberCode, s.seatNo)}</td>
-                        <td>
-                          {s.name ?? <span className="muted-sm">Empty</span>}
-                          {canMembers && (
-                            <details className="action">
-                              <summary>Edit</summary>
-                              <ActionForm action={adminSeatAction.bind(null, s.id)}>
-                                <Field name="name" label="Name" defaultValue={s.name ?? ""} required />
-                                <Field name="jobTitle" label="Job title" defaultValue={s.jobTitle ?? ""} />
-                                <Field name="email" label="Email" type="email" defaultValue={s.email ?? ""} required />
-                                <Field name="phone" label="Phone" defaultValue={s.phone ?? ""} />
-                                <div className="form-actions">
-                                  <Submit className="btn btn--primary btn--xs">Save</Submit>
-                                </div>
-                              </ActionForm>
-                              {s.email && (
-                                <ActionForm action={adminSeatAction.bind(null, s.id)} className="inline-form">
-                                  <input type="hidden" name="clear" value="yes" />
-                                  <Submit className="btn btn--light btn--xs">Clear seat</Submit>
-                                </ActionForm>
-                              )}
-                            </details>
-                          )}
-                        </td>
+                        <td className="nowrap">{seatCode(m.memberCode, s.seatNo)}</td>
+                        <td>{s.name ?? <span className="muted-sm">Empty</span>}</td>
                         <td>{s.jobTitle ?? ""}</td>
                         <td>{s.email ?? ""}</td>
                         <td>{s.phone ?? ""}</td>
-                        <td>{fmtDate(s.assignedAt)}</td>
+                        <td className="nowrap">{fmtDate(s.assignedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              {canMembers && (
+                <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+                  {b.seats.map((s) => (
+                    <div key={s.id}>
+                      <details className="action" style={{ marginTop: 0 }}>
+                        <summary>
+                          Edit {seatCode(m.memberCode, s.seatNo)}
+                          {s.name ? ` · ${s.name}` : ""}
+                        </summary>
+                        <ActionForm action={adminSeatAction.bind(null, s.id)}>
+                          <Field name="name" label="Name" defaultValue={s.name ?? ""} required />
+                          <Field name="jobTitle" label="Job title" defaultValue={s.jobTitle ?? ""} />
+                          <Field name="email" label="Email" type="email" defaultValue={s.email ?? ""} required />
+                          <Field name="phone" label="Phone" defaultValue={s.phone ?? ""} />
+                          <div className="form-actions">
+                            <Submit className="btn btn--primary btn--xs">Save</Submit>
+                          </div>
+                        </ActionForm>
+                        {s.email && (
+                          <ActionForm action={adminSeatAction.bind(null, s.id)} className="inline-form">
+                            <input type="hidden" name="clear" value="yes" />
+                            <Submit className="btn btn--light btn--xs">Clear seat</Submit>
+                          </ActionForm>
+                        )}
+                      </details>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>
@@ -444,10 +451,10 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
           {canMembers && (
             <section className="panel">
               <h2>Actions</h2>
-              <div style={{ display: "grid", gap: 10 }}>
+              <div className="action-stack" style={{ display: "grid", gap: 10 }}>
                 {["active", "grace", "expired"].includes(m.status) && (
                   <ActionForm action={membershipStatusAction.bind(null, m.id, "suspended")} className="inline-form">
-                    <Submit className="btn btn--light btn--sm">Suspend membership</Submit>
+                    <Submit className="btn btn--danger btn--sm">Suspend membership</Submit>
                   </ActionForm>
                 )}
                 {m.status === "suspended" && (

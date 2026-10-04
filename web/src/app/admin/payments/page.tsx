@@ -83,7 +83,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                       Paid {fmtDate(p.paymentDate)} · sent {fmtDateTime(p.createdAt)}
                     </div>
                   </td>
-                  <td>
+                  <td className="nowrap">
                     {p.proofKey ? (
                       <a href={`/files/${p.proofKey.split("/").map(encodeURIComponent).join("/")}`} target="_blank">
                         View proof

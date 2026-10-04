@@ -65,7 +65,7 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
                         </div>
                         {s.email && (
                           <p style={{ margin: "0 0 6px" }}>
-                            {s.name} · {s.jobTitle || "—"} · {s.email}
+                            {[s.name, s.jobTitle, s.email].filter(Boolean).join(" · ")}
                             {s.phone ? ` · ${s.phone}` : ""}
                           </p>
                         )}
@@ -103,7 +103,7 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
                   <MembershipBadge status={m.status} />
                 </div>
                 <dl className="kv">
-                  <dt>Status</dt>
+                  <dt>Stage</dt>
                   <dd>
                     <PipelineBadge status={org.pipelineStatus} />
                   </dd>
@@ -127,7 +127,7 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
                   <dt>Contact</dt>
                   <dd>
                     {org.contactName} ({org.contactJobTitle})<br />
-                    {org.contactEmail} · {org.contactPhone}
+                    {org.contactEmail} · <span className="nowrap">{org.contactPhone}</span>
                   </dd>
                 </dl>
                 <p className="muted-sm" style={{ marginTop: 12 }}>

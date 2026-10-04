@@ -58,14 +58,14 @@ const ELIGIBILITY: Record<string, [string, string]> = {
   rejected: ["Eligibility rejected", "red"],
 };
 
-function Badge({ map, value }: { map: Record<string, [string, string]>; value: string }) {
+function Badge({ map, value, prefix = "" }: { map: Record<string, [string, string]>; value: string; prefix?: string }) {
   const [label, tone] = map[value] ?? [value, ""];
-  return <span className={`badge${tone ? ` badge--${tone}` : ""}`}>{label}</span>;
+  return <span className={`badge${tone ? ` badge--${tone}` : ""}`}>{prefix + label}</span>;
 }
 export const MembershipBadge = ({ status }: { status: MembershipStatus }) => <Badge map={MEMBERSHIP} value={status} />;
 export const OrderBadge = ({ status }: { status: OrderStatus }) => <Badge map={ORDER} value={status} />;
 export const PaymentBadge = ({ status }: { status: PaymentStatus }) => <Badge map={PAYMENT} value={status} />;
-export const PipelineBadge = ({ status }: { status: PipelineStatus }) => <Badge map={PIPELINE} value={status} />;
+export const PipelineBadge = ({ status, prefix }: { status: PipelineStatus; prefix?: string }) => <Badge map={PIPELINE} value={status} prefix={prefix} />;
 export const EligibilityBadge = ({ status }: { status: string }) =>
   status === "not_required" ? null : <Badge map={ELIGIBILITY} value={status} />;
 

@@ -49,7 +49,7 @@ export default async function JoinPage() {
               <span className="badge badge--navy">Organisations</span>
               <h2>Corporate</h2>
               <div className="price">
-                {rm(s.prices.COR_S)} – {rm(s.prices.COR_P)} <small className="muted-sm">/ year</small>
+                <span className="nowrap">{rm(s.prices.COR_S)} –</span> <span className="nowrap">{rm(s.prices.COR_P)}</span> <small className="muted-sm">/ year</small>
               </div>
               <ul>
                 <li>5 to 20 named seats for your team</li>

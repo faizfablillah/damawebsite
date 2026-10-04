@@ -340,3 +340,31 @@ test("settings, exports and roles", async ({ page }) => {
   await page.goto("/admin/settings");
   await expect(page.getByText("doesn't include that page")).toBeVisible();
 });
+
+test("repeated wrong passwords lock the account until it is reset", async ({ page }) => {
+  await page.context().clearCookies();
+  for (let i = 0; i < 5; i++) {
+    await page.goto("/login");
+    await page.getByLabel("Email address").fill(INDIVIDUAL);
+    await page.getByLabel("Password").fill("wrong-password");
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page.getByText("Incorrect email or password.")).toBeVisible();
+  }
+  // Even the right password is refused while locked
+  await page.goto("/login");
+  await page.getByLabel("Email address").fill(INDIVIDUAL);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page.getByText(/Too many failed login attempts\. Please try again in 1[45] minutes/)).toBeVisible();
+
+  // Resetting the password lifts the lock
+  await page.goto("/forgot-password");
+  await page.getByLabel("Email address").fill(INDIVIDUAL);
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await page.goto(linkIn(await lastMail(INDIVIDUAL, "resetPassword")));
+  await page.getByLabel(/^New password/).fill(PASSWORD);
+  await page.getByLabel("Confirm new password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Save new password" }).click();
+  await expect(page).toHaveURL(/\/portal/);
+  await login(page, INDIVIDUAL);
+});

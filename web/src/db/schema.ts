@@ -291,6 +291,18 @@ export const auditLog = pgTable(
   (t) => [index("audit_entity_idx").on(t.entityType, t.entityId)],
 );
 
+// Recent login / password-reset / sign-up attempts, used for rate limiting (pruned daily)
+export const authAttempts = pgTable(
+  "auth_attempts",
+  {
+    id: id(),
+    kind: text("kind").$type<"login_failed" | "reset_request" | "signup">().notNull(),
+    key: text("key").notNull(), // "email:<address>" or "ip:<address>"
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_attempts_lookup_idx").on(t.kind, t.key, t.createdAt)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
 export type Order = typeof orders.$inferSelect;

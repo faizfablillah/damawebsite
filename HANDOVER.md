@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 4 October 2026 (evening). Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 5 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -14,6 +14,7 @@ This file is the single place to pick the project up again: what exists, why it 
 | Website + membership system | `web/` (Next.js app) | **Live for board testing** at https://dama-malaysia.vercel.app (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
 | Automated tests | `web/tests/` | 12 end-to-end tests, all passing. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
+| Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 24 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
 
 ---
 
@@ -155,6 +156,8 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 
 - [x] **Deployed** 4 Oct 2026 for board testing: Vercel project `dama-malaysia` (root `web`, GitHub-linked), Supabase project `dama-malaysia` (Singapore, private bucket `dama-files`), email via Microsoft 365 Graph as faiz@keppstone.onmicrosoft.com (Entra app "DAMA website", Mail.Send; client secret expires Oct 2028). Secrets: git-ignored `web/.env.production.local` + Vercel.
 - [ ] **Next session — first:** Faiz signs up at https://dama-malaysia.vercel.app/signup with faiz@keppstone.onmicrosoft.com (becomes super admin; no accounts exist yet), checks Admin → Settings, then does one full test run with a second email (join → upload proof → verify → receipt email). Claude then checks the email log / database for failures.
+- [ ] Export the walkthrough deck to `.pptx` (Share → Export → PowerPoint) and save it in the project root; review it before sharing with the board.
+- [ ] Delete the stray empty file `UserswanmohamProjectsdamawebsiteweb.env.production.local` in the project root (a mistyped path; the real secrets file is `web/.env.production.local`).
 - [ ] Send the board the testing message (draft agreed 4 Oct: link, test steps, check Junk, don't pay real money, test data wiped later, offer admin access to Eva (Membership admin) and Peggy (Finance), feedback deadline).
 - [ ] **Restrict the Entra app** to Faiz's mailbox only (Exchange Online application access policy / RBAC; the keppstone tenant has 16 users). Needs `Connect-ExchangeOnline` login by Faiz.
 - [ ] Switch email to info.damamalaysia@gmail.com once accessible (remove `MS_*`, add `SMTP_*` in Vercel).

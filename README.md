@@ -2,7 +2,7 @@
 
 > **Start here:** [`HANDOVER.md`](HANDOVER.md) has the full project context, decisions, status and next steps.
 >
-> **Live for board testing:** https://dama-malaysia.vercel.app — the website and the membership system live together in [`web/`](web/README.md) (Next.js app with sign-up, member portal, admin, receipts), deployed on Vercel from `main`. The `docs/` folder below is the earlier static version, still published on GitHub Pages until the app replaces it.
+> **Live at https://dama.org.my** — the website, membership system, events and news live together in [`web/`](web/README.md) (Next.js app), deployed on Vercel from `main`. The `docs/` folder below is the old static version; its pages now just forward to dama.org.my.
 
 Static website for DAMA Chapter Malaysia – Kuala Lumpur & Selangor. Plain HTML, CSS and JavaScript: no build step, no frameworks.
 

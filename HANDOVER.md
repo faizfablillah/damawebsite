@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 9 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 9 October 2026 (night). Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -10,9 +10,9 @@ This file is the single place to pick the project up again: what exists, why it 
 
 | Piece | Where | Status |
 |---|---|---|
-| Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages (contact email fixed to info.damamalaysia@gmail.com). |
+| Old static website v1 | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Retired**: every page now forwards to https://dama.org.my. |
 | Website + membership system | `web/` (Next.js app) | **Live for board testing** at **https://dama.org.my** (since 9 Oct 2026; `www.dama.org.my` and the old https://dama-malaysia.vercel.app redirect there) (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
-| Automated tests | `web/tests/` | 24 end-to-end tests (membership, security, backups/alerts, events, news, announcements), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
+| Automated tests | `web/tests/` | 25 end-to-end tests (membership, security, backups/alerts, events incl. partner events, news, announcements), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 | Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 30 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, Part 5 (added 6 Oct, **board only**: comparison with the earlier vendor quotation; details in `PRIVATE-CONTEXT.md`), technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
 
@@ -31,12 +31,14 @@ This file is the single place to pick the project up again: what exists, why it 
 ## 3. Repository layout
 
 ```
-docs/                       Static website v1 (GitHub Pages). Retire after the app goes live.
+docs/                       Old static site (GitHub Pages) — now only redirect pages to dama.org.my
 web/                        THE APP — public website + membership system (Next.js 16)
-  public/*.html             Website pages (ported from docs/, wired to sign-up, privacy page added)
+  public/*.html             Static website pages (Home, About, Leadership, Membership, Contact, Privacy)
+  content/news/             News posts (Markdown, one file per post)
   public/assets/            CSS, JS, fonts, optimised images
   src/                      App code (see web/README.md "Code map")
   drizzle/                  Database migrations (applied automatically)
+  scripts/                  Maintenance: launch-reset.ts, restore-backup.ts, check-db-reconnect.ts
   tests/                    Playwright end-to-end tests
   README.md                 How to run, configure, deploy
 scripts/
@@ -45,6 +47,7 @@ scripts/
   screenshot.ps1            Headless Edge screenshots of docs/ pages
 HANDOVER.md                 This file
 PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
+DAMA - <partner>/           Local only (git-ignored) — partnership folders with internal notes (e.g. WDS APAC 2026)
 ```
 
 **Kept on this computer only (git-ignored) and why:**
@@ -168,24 +171,42 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 
 ## 9. Open items / next steps
 
-- [x] **Deployed** 4 Oct 2026 for board testing: Vercel project `dama-malaysia` (root `web`, GitHub-linked), Supabase project `dama-malaysia` (Singapore, private bucket `dama-files`), email via Microsoft 365 Graph as faiz@keppstone.onmicrosoft.com (Entra app "DAMA website", Mail.Send; client secret expires Oct 2028). Secrets: git-ignored `web/.env.production.local` + Vercel.
-- [x] **First production test run** (6 Oct 2026): Faiz signed up as super admin with faiz@keppstone.onmicrosoft.com and ran the individual journey end to end on the same account (sign-up → confirm email → apply → upload proof → verify → receipt `MY/MEM/2026/0001`, Member ID `IMYKL26-0001`). All 4 emails sent through Graph with no errors, the proof file is in the `dama-files` bucket, the daily job returns 200, and all public pages and links load. This is test data, so wipe it before launch.
-- [x] **Outside-email test** (6 Oct 2026): faizfablillah@gmail.com signed up and ran the corporate journey (Corporate Small, `CMYSL26-0001`, receipt `MY/MEM/2026/0002`, 5 empty seats). All 4 emails reached Gmail. Individual and Corporate are now tested; Student is not (needs a .edu address).
-- [ ] **Board testing email** (drafted 6 Oct 2026; feedback deadline set by Faiz): link, test steps, one email can hold Individual + Corporate, Gmail "+test" tip, Student needs .edu, check Junk, don't pay real money, test data wiped later, propose Eva (Membership admin) and Peggy (Finance), hosting cost, existing-member list, TIN question. Attach the deck **re-exported after 6 Oct** so it includes Part 5. If already sent with the older export, send the new one as a follow-up.
-- [ ] While the board tests: check Admin → Payments daily and verify their test payments; when Eva and Peggy agree, give their accounts the Membership admin / Finance roles; collect feedback and work through it.
-- [ ] Board decisions proposed in Part 5 of the deck: continue in-house, ask for the dama.org.my transfer, build no-code page editing before launch, name a second technical volunteer, move accounts to DAMA ownership.
-- [x] **Entra app restricted** (9 Oct 2026): Exchange Online application access policy — the "DAMA website" app may only send as members of the hidden mail-enabled security group `dama-website-senders` (just faiz@keppstone.onmicrosoft.com). Tested: Granted for that mailbox, Denied for the other 2 mailboxes; production email still sends. When the sender changes, add the new mailbox to that group (or switch to SMTP and delete the app).
-- [x] Email switched to Zoho `info@dama.org.my` (9 Oct 2026). Later: delete the Entra app "DAMA website" and the `dama-website-senders` group in the keppstone tenant once Zoho has run smoothly for a while; the public contact address moved to info@dama.org.my on 9 Oct 2026 — give whoever monitored the old Gmail inbox access to info@ in Zoho, and set an auto-reply/forward on info.damamalaysia@gmail.com pointing to info@dama.org.my.
-- [x] Supabase CLI access token deleted and `web/.env.supabase-cli` removed (9 Oct 2026). Create a new token only when the CLI is needed again, and delete it afterwards.
-- [ ] Before launch: wipe test data with `scripts/launch-reset.ts` (dry run on production checked 9 Oct: 3 test memberships, 2 test accounts); move Vercel/Supabase to DAMA-owned accounts (or consider Microsoft for Nonprofits — DAMA-owned tenant, possible Azure credits).
-- [ ] Upgrade Vercel to **Pro** before real members pay; later move Vercel/Supabase to DAMA-owned accounts.
-- [ ] Replace placeholder **testimonials**; review **event write-ups**.
-- [ ] Get full-resolution **board headshots** and AFED / Launchpad / MMU event photos (current ones are extracted from the Infopack PDF).
-- [ ] **TIN** for receipts — not verified; confirm with the Treasurer/VP Finance (receipt currently shows ROS no. only).
-- [ ] Collect the spreadsheet of **existing paid members** (Eva / Peggy) and import it.
-- [ ] Decide admins and roles (PICs, finance) — currently only the owner.
-- [ ] Later options discussed: online payment gateway (Billplz / ToyyibPay / iPay88 / Stripe — needs a merchant account in the association's name), events/community, LMS, analytics, member badges, custom domain `dama.org.my`.
-- Known limitations: changing tier (e.g. student → individual) means a new application and new Member ID; corporate organisation details are changed by emailing the chapter; individual pricing switch is global.
+### Where things stand (end of 9 Oct 2026)
+
+The system is **production-ready apart from the launch steps below**. Live at https://dama.org.my with: membership (student / individual / corporate, bank transfer + receipts), events (free/paid, members-only, partner events), news, announcements, nightly backups + alert emails, security hardening, email from `info@dama.org.my` (Zoho, SPF/DKIM/DMARC pass, lands in Gmail inbox). First partner content is live: World Data Summit APAC 2026 (event + news post, 29–30 Oct; member promo code shown to members only). Production still holds **test data** (3 test memberships, 2 test accounts).
+
+### Next steps, in order
+
+1. [ ] **Email members about WDS APAC 2026** (Admin → Announce → Active members; text drafted in the 9 Oct session) and post the news link on LinkedIn. WDS-side checks (speaker, venue line on their booking page, promo code test, our logo on their site) are tracked in the local partnership folder.
+2. [ ] **Old Gmail inbox:** auto-reply/forward on info.damamalaysia@gmail.com → info@dama.org.my; give whoever monitored it (Eva) access to info@ in Zoho.
+3. [ ] **Finish board testing** (only Datin has tested so far) — or decide it's done. When Eva and Peggy agree, give them Membership admin / Finance roles (Admin → Admins); give the Programs team (Iffah, Quak) the Events admin role.
+4. [ ] **Upgrade Vercel to Pro** (~USD 20/month) before real members pay (Hobby is non-commercial only).
+5. [ ] **Wipe test data**: `npx tsx --env-file=.env.production.local scripts/launch-reset.ts --keep=faiz@keppstone.onmicrosoft.com` (dry run), then `--confirm`; empty `payment-proof/`, `student-proof/`, `corporate-docs/`, `event-payment/` in Supabase Storage. Keeps settings and events.
+6. [ ] **Import existing paid members** (spreadsheet from Eva / Peggy) via Admin → Import, so they keep their Member IDs.
+7. [ ] **Announce the launch** (board, members, LinkedIn) and ask DAMA International to add https://dama.org.my to the chapter list (we show no website there today).
+8. [ ] Download a backup from Admin → Export after launch and monthly; keep it in DAMA's drive (not email).
+
+### Later / housekeeping
+
+- [ ] Delete the Entra app "DAMA website" and the `dama-website-senders` group in the keppstone tenant once Zoho has run smoothly for a week or two.
+- [ ] Replace placeholder **testimonials**; review the older news write-ups.
+- [ ] Full-resolution **board headshots** and event photos (current ones come from the Infopack PDF).
+- [ ] **TIN** for receipts — confirm with the Treasurer/VP Finance (receipt shows ROS no. only).
+- [ ] Move Vercel / Supabase / Zoho / the domain to DAMA-owned accounts (all currently under Faiz; domain registered at YeahHost under Faiz's account).
+- [ ] Options discussed: online payment gateway (needs a merchant account in the association's name), homepage partners strip once there are 4+ partners, members-only resources/recordings library, newsletter archive.
+- Known limitations: changing tier means a new application and new Member ID; corporate organisation details are changed by emailing the chapter; the individual pricing switch is global; announcements are limited by the email plan's daily sending limit.
+
+### Done (history)
+
+- [x] 4 Oct — deployed for board testing (Vercel + Supabase, Singapore).
+- [x] 6 Oct — first production runs: individual (Faiz), corporate (Faiz's Gmail), Datin's individual journey.
+- [x] 9 Oct — security review + fixes (15 issues), QA, test report workbook (local `DAMA Website Test Report 2026-10-09.xlsx`).
+- [x] 9 Oct — nightly backups, alert emails, launch-reset and restore scripts (restore tested end to end).
+- [x] 9 Oct — Entra app restricted to Faiz's mailbox; Supabase CLI token deleted.
+- [x] 9 Oct — admin pages hanging fixed (Supabase **session** pooler 5432; see Gotchas).
+- [x] 9 Oct — events, news, announcements, partner events built; WDS APAC 2026 published.
+- [x] 9 Oct — moved to **dama.org.my** (DNS at Vercel); GitHub Pages forwards there.
+- [x] 9 Oct — Zoho Mail (admin@, info@); website sends as "DAMA Malaysia" <info@dama.org.my>; contact address switched everywhere.
 
 ---
 

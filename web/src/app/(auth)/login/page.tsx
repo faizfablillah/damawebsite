@@ -2,14 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppHero, Notice } from "@/components/ui";
 import { ActionForm, Field, Submit } from "@/components/form";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, safeNext } from "@/lib/auth";
 import { loginAction } from "../actions";
 
 export const metadata = { title: "Member login" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
-  const next = typeof sp.next === "string" ? sp.next : "";
+  const next = safeNext(sp.next) ?? "";
   if (await getCurrentUser()) redirect(next || "/portal");
   return (
     <>

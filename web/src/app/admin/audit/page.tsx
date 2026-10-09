@@ -1,9 +1,12 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { requireAdmin } from "@/lib/auth";
 import { Empty } from "@/components/ui";
 import { fmtDateTime } from "@/lib/format";
 
 export default async function AuditPage() {
+  // Each page checks access itself: the layout check alone does not protect the page payload
+  await requireAdmin("view");
   const db = await getDb();
   const rows = await db
     .select({ log: schema.auditLog, actor: schema.users.name })

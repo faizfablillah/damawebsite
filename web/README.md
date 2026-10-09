@@ -22,7 +22,7 @@ One Next.js app that serves:
 - Renewal reminders are emailed 30, 14 and 7 days before expiry, at the start of grace and on expiry (daily job).
 - Prices, early-bird vs standard individual pricing, bank details, grace days and reminder days are edited in **Admin → Settings**.
 
-Admin roles: **Super admin** (everything), **Membership admin** (approvals, members, corporate, seats), **Finance** (payments, receipts, exports). The first super admin is whoever signs up with an email listed in `SUPER_ADMIN_EMAILS`.
+Admin roles: **Super admin** (everything), **Membership admin** (approvals, members, corporate, seats), **Finance** (payments, receipts, exports). The first super admin is whoever signs up and confirms an email listed in `SUPER_ADMIN_EMAILS` (only while no super admin exists; after that, manage roles in Admin → Admins).
 
 ## Run it on this computer
 
@@ -46,7 +46,7 @@ npx next build; $env:E2E_PROD=1; npx playwright test tests/membership.spec.ts   
 | Variable | Needed in production | What it is |
 |---|---|---|
 | `APP_URL` | yes | Public address, used in email links, e.g. `https://dama-membership.vercel.app` |
-| `SUPER_ADMIN_EMAILS` | yes | Comma-separated emails that become super admin on sign-up/login |
+| `SUPER_ADMIN_EMAILS` | yes | Comma-separated emails; the first to confirm becomes super admin while none exists |
 | `DATABASE_URL` | yes | Postgres connection string (Supabase “transaction pooler”, port 6543). Migrations run automatically on start |
 | `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | yes | Private file storage for payment proofs and documents (Supabase Storage S3 keys work) |
 | `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_SENDER` | one email option | Sending email through Microsoft 365 (Graph API): an app registration with the **Mail.Send** application permission (admin consent). Takes priority over SMTP |

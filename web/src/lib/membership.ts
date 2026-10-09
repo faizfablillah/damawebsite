@@ -113,6 +113,8 @@ export async function createApplication(input: ApplicationInput) {
   const price = priceFor(input.tier, settings);
 
   const result = await db.transaction(async (tx) => {
+    // Lock the applicant so a double-submitted form can't create two memberships
+    await tx.execute(sql`select id from users where id = ${input.user.id} for update`);
     if (tier.category !== "C") {
       const existing = await tx
         .select()
@@ -400,8 +402,9 @@ export async function verifyPayment(paymentId: string, adminId: string, amount?:
     const [updated] = await tx
       .update(schema.payments)
       .set({ status: "verified", amount: amount ?? p.amount, verifiedBy: adminId, verifiedAt: new Date() })
-      .where(eq(schema.payments.id, p.id))
+      .where(and(eq(schema.payments.id, p.id), eq(schema.payments.status, "submitted")))
       .returning();
+    if (!updated) throw new BusinessError("This payment has already been processed.");
     const r = await applyVerifiedPayment(tx, updated, graceDays);
     await audit(adminId, "payment.verified", "payment", p.id, { amount: updated.amount, receiptNo: r.receipt.receiptNo }, tx);
     return r;
@@ -452,7 +455,13 @@ export async function rejectPayment(paymentId: string, adminId: string, reason: 
   const res = await db.transaction(async (tx) => {
     const [p] = await tx.select().from(schema.payments).where(eq(schema.payments.id, paymentId));
     if (!p || p.status !== "submitted") throw new BusinessError("This payment has already been processed.");
-    await tx.update(schema.payments).set({ status: "rejected", rejectReason: reason, verifiedBy: adminId, verifiedAt: new Date() }).where(eq(schema.payments.id, p.id));
+    // Only a still-submitted payment can be rejected (guards against a verify landing at the same moment)
+    const [rejected] = await tx
+      .update(schema.payments)
+      .set({ status: "rejected", rejectReason: reason, verifiedBy: adminId, verifiedAt: new Date() })
+      .where(and(eq(schema.payments.id, p.id), eq(schema.payments.status, "submitted")))
+      .returning();
+    if (!rejected) throw new BusinessError("This payment has already been processed.");
     const [o] = await tx.select().from(schema.orders).where(eq(schema.orders.id, p.orderId));
     const others = await tx.select().from(schema.payments).where(and(eq(schema.payments.orderId, o.id), eq(schema.payments.status, "submitted")));
     if (!others.length) {

@@ -25,6 +25,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/receipts/[id]">) {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="DAMA Receipt ${r.receiptNo.replace(/\//g, "-")}.pdf"`,
       "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

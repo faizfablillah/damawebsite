@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 6 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 9 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -12,7 +12,7 @@ This file is the single place to pick the project up again: what exists, why it 
 |---|---|---|
 | Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages (contact email fixed to info.damamalaysia@gmail.com). |
 | Website + membership system | `web/` (Next.js app) | **Live for board testing** at https://dama-malaysia.vercel.app (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
-| Automated tests | `web/tests/` | 12 end-to-end tests, all passing. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
+| Automated tests | `web/tests/` | 16 end-to-end tests (incl. 4 security tests), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 | Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 30 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, Part 5 (added 6 Oct, **board only**: comparison with the earlier vendor quotation; details in `PRIVATE-CONTEXT.md`), technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
 
@@ -101,7 +101,7 @@ PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
 
 **Admin (`/admin`):** Dashboard (sign-ups today by tier, payments to verify, student checks, corporate leads, seat requests, renewals due, active totals, recent activity) · Payments (verify with actual amount → part payment if less; reject with reason; record offline payment; discount) · Students / Individuals / All members (search, filters, full record) · Corporate (pipeline: New lead → PIC contacted → Invoice sent → Pending payment → Payment review → Pending user list → Active; assign PIC, notes, upload proposals/invoices, manage seats, approve swaps) · Renewals · Email log · Export (members, payments, seats as CSV) · Import · Settings (prices, bank details, grace, reminders) · Admins (roles) · Audit trail.
 
-**Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export), Finance (payments, receipts, export). First super admin = any account whose email is in `SUPER_ADMIN_EMAILS`.
+**Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export), Finance (payments, receipts, export). First super admin = an account whose email is in `SUPER_ADMIN_EMAILS`, granted only after the email is confirmed and only while no super admin exists (so production ignores it now; add further admins in Admin → Admins). Super admins can also **disable** an account there (signs it out everywhere, blocks login and password reset).
 
 ---
 
@@ -110,7 +110,8 @@ PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
 - **Next.js 16.3** (App Router, Server Actions, Turbopack) + React 19, TypeScript. Next 16 differs from older versions — read `web/node_modules/next/dist/docs/` before changing framework code (async `params`/`cookies()`, `proxy` instead of `middleware`).
 - **Database:** Drizzle ORM. Locally an embedded Postgres (PGlite) in `web/.data/`; in production any Postgres via `DATABASE_URL`. 17 tables (users, sessions, tokens, organisations, notes, documents, memberships, orders, payments, receipts, seats, seat requests, counters, settings, email log, renewal reminders, audit log). Money stored in sen.
 - **Auth:** own implementation — bcrypt passwords, 30-day httpOnly session cookie (hashed in DB), email verification and reset tokens.
-- **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account or 30 per IP in 15 min → locked until the window passes or the password is reset; reset emails 3/hour per address (silent) and 10/hour per IP; sign-ups 20/hour per IP. Old rows pruned by the daily job.
+- **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account from one network, 50 per account from anywhere, or 30 per network in 15 min → locked until the window passes or the password is reset (so a stranger can't keep someone else locked out); reset emails 3/hour per address (silent) and 10/hour per IP; sign-up attempts 20/hour per IP (every attempt counts). Old rows pruned by the daily job.
+- **Security hardening (9 Oct 2026 review):** every admin page checks access itself (not just the layout); login only redirects within the site; security headers (CSP, no framing, nosniff, referrer and permissions policies) in `next.config.ts`; CSV exports escape formulas; names and organisation names can't contain links; changing a password signs out other devices; confirmation banners travel in a short cookie, not the URL; payment verify/reject and double-submitted applications are race-safe; constant-time cron secret check. `robots.txt` keeps admin/portal out of search; `sitemap.xml` lists public pages. Social preview tags in `public/*.html` use `https://dama-malaysia.vercel.app` — **change them when the domain moves to dama.org.my**.
 - **Files:** private storage (local disk, or any S3-compatible bucket such as Supabase Storage). Uploads checked by content (PDF/JPG/PNG/WEBP, ≤ 4 MB). Served only to admins or the owner.
 - **Email:** Microsoft 365 via the Graph API (`MS_*` settings — used now, sending as faiz@keppstone.onmicrosoft.com), or SMTP (`SMTP_*`, e.g. a Gmail app password for info.damamalaysia@gmail.com later), or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`. Replies always go to info.damamalaysia@gmail.com.
 - **PDF receipts:** pdfkit, generated from a stored snapshot (receipts never change after issue).

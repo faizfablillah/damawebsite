@@ -368,3 +368,112 @@ test("repeated wrong passwords lock the account until it is reset", async ({ pag
   await expect(page).toHaveURL(/\/portal/);
   await login(page, INDIVIDUAL);
 });
+
+test("security: redirects, headers, robots, cron and fake banners", async ({ page }) => {
+  // Security headers on public and app pages
+  for (const url of ["/", "/login"]) {
+    const res = await page.request.get(url);
+    const h = res.headers();
+    expect(h["content-security-policy"]).toContain("frame-ancestors 'none'");
+    expect(h["x-frame-options"]).toBe("DENY");
+    expect(h["x-content-type-options"]).toBe("nosniff");
+    expect(h["x-powered-by"]).toBeUndefined();
+  }
+  const robots = await (await page.request.get("/robots.txt")).text();
+  expect(robots).toContain("Disallow: /admin");
+  expect(await (await page.request.get("/sitemap.xml")).text()).toContain("/membership");
+
+  // The daily job needs the exact secret
+  expect((await page.request.get("/api/cron/daily", { headers: { Authorization: "Bearer wrong" } })).status()).toBe(401);
+  expect((await page.request.get("/api/cron/daily", { headers: { Authorization: "Bearer test-cron-secret" } })).status()).toBe(200);
+
+  // Login never sends people to another site
+  for (const next of ["https://evil.example/x", "//evil.example", "/\evil.example"]) {
+    await page.context().clearCookies();
+    await page.goto(`/login?next=${encodeURIComponent(next)}`);
+    await page.getByLabel("Email address").fill(INDIVIDUAL);
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+    expect(new URL(page.url()).host).toMatch(/^localhost:\d+$/);
+  }
+  // ...also when already logged in
+  await page.goto(`/login?next=${encodeURIComponent("https://evil.example/x")}`);
+  expect(new URL(page.url()).host).toMatch(/^localhost:\d+$/);
+
+  // A link can't make the admin pages show a made-up confirmation
+  await login(page, ADMIN);
+  await page.goto("/admin/payments?msg=Your+account+is+locked");
+  await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
+  await expect(page.getByText("Your account is locked")).toHaveCount(0);
+});
+
+test("security: listed admin email is not auto-promoted once a super admin exists", async ({ page }) => {
+  await signup(page, { name: "Late Admin", email: "late-admin@test.dama.my" });
+  // Unverified: no admin access
+  await page.goto("/admin");
+  await expect(page).not.toHaveURL(/\/admin/);
+  await verifyEmail(page, "late-admin@test.dama.my");
+  await login(page, "late-admin@test.dama.my");
+  await page.goto("/admin");
+  await expect(page).not.toHaveURL(/\/admin/);
+});
+
+test("security: names can't carry links, and exports neutralise formulas", async ({ page }) => {
+  await signup(page, { name: "Click www.evil.example now", email: "linky@example.com" });
+  await expect(page.getByText("Links and line breaks aren't allowed here.")).toBeVisible();
+
+  await login(page, INDIVIDUAL);
+  await page.goto("/portal/profile");
+  await page.getByLabel("Full name").fill("=HYPERLINK(1)");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Your details have been saved.")).toBeVisible();
+  await login(page, ADMIN);
+  const body = await (await page.request.get("/admin/export/members")).text();
+  expect(body).toContain("'=HYPERLINK(1)");
+  expect(body).not.toMatch(/(^|,)"?=HYPERLINK/m);
+  await login(page, INDIVIDUAL);
+  await page.goto("/portal/profile");
+  await page.getByLabel("Full name").fill("Ravi Kumar");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.getByText("Your details have been saved.")).toBeVisible();
+});
+
+test("security: password change and disabling sign out other devices", async ({ page, browser }) => {
+  // A second device stays logged in until the password changes
+  const other = await browser.newContext();
+  const otherPage = await other.newPage();
+  await login(otherPage, INDIVIDUAL);
+  await login(page, INDIVIDUAL);
+  await page.goto("/portal/profile");
+  await page.getByLabel("Current password").fill(PASSWORD);
+  await page.getByLabel(/^New password/).fill(PASSWORD);
+  await page.getByLabel("Confirm new password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Change password" }).click();
+  await expect(page.getByText("Any other devices have been logged out.")).toBeVisible();
+  await page.goto("/portal");
+  await expect(page).toHaveURL(/\/portal/);
+  await otherPage.goto("/portal");
+  await expect(otherPage).toHaveURL(/\/login/);
+
+  // Admin disables the account: signed out and can't log in; then enables it again
+  await login(otherPage, INDIVIDUAL);
+  await login(page, ADMIN);
+  await page.goto("/admin/admins");
+  await page.getByLabel("Email of the account").fill(INDIVIDUAL);
+  await page.getByLabel("Action").selectOption("disable");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("account is now disabled and signed out")).toBeVisible();
+  await otherPage.goto("/portal");
+  await expect(otherPage).toHaveURL(/\/login/);
+  await otherPage.getByLabel("Email address").fill(INDIVIDUAL);
+  await otherPage.getByLabel("Password").fill(PASSWORD);
+  await otherPage.getByRole("button", { name: "Log in" }).click();
+  await expect(otherPage.getByText("Incorrect email or password.")).toBeVisible();
+  await page.getByLabel("Email of the account").fill(INDIVIDUAL);
+  await page.getByLabel("Action").selectOption("enable");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("account is now enabled again")).toBeVisible();
+  await login(otherPage, INDIVIDUAL);
+  await other.close();
+});

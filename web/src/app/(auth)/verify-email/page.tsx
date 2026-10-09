@@ -2,7 +2,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { AppHero, Notice } from "@/components/ui";
 import { getDb, schema } from "@/db";
-import { consumeAuthToken } from "@/lib/auth";
+import { consumeAuthToken, grantBootstrapAdmin } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 export const metadata = { title: "Email confirmed" };
@@ -13,8 +13,9 @@ export default async function VerifyEmailPage({ searchParams }: PageProps<"/veri
   const userId = token ? await consumeAuthToken(token, "verify_email") : null;
   if (userId) {
     const db = await getDb();
-    await db.update(schema.users).set({ emailVerifiedAt: new Date() }).where(eq(schema.users.id, userId));
+    const [user] = await db.update(schema.users).set({ emailVerifiedAt: new Date() }).where(eq(schema.users.id, userId)).returning();
     await audit(userId, "user.email_verified", "user", userId);
+    await grantBootstrapAdmin(user);
   }
   return (
     <>

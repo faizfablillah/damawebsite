@@ -1,9 +1,12 @@
 import { desc, ilike, or } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { requireAdmin } from "@/lib/auth";
 import { Empty } from "@/components/ui";
 import { fmtDateTime } from "@/lib/format";
 
 export default async function EmailsPage({ searchParams }: PageProps<"/admin/emails">) {
+  // Each page checks access itself: the layout check alone does not protect the page payload
+  await requireAdmin("view");
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const db = await getDb();

@@ -1,4 +1,4 @@
-import type { ZodError } from "zod";
+import type { ZodError, ZodString } from "zod";
 
 export type FormState = {
   error?: string;
@@ -30,3 +30,6 @@ export function zodErrors(err: ZodError): Record<string, string> {
 export function invalid(data: FormData, err: ZodError, message = "Please check the highlighted fields."): FormState {
   return { error: message, fieldErrors: zodErrors(err), values: keepValues(data) };
 }
+
+// Names and organisation names appear in emails we send, so they can't carry links or line breaks
+export const plain = (field: ZodString) => field.refine((v) => !/:\/\/|www\.|[\r\n]/i.test(v), "Links and line breaks aren't allowed here.");

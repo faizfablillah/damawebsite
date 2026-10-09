@@ -28,10 +28,16 @@ export default defineConfig({
     env: {
       DATA_DIR: ".data-test",
       APP_URL: `http://localhost:${PORT}`,
-      SUPER_ADMIN_EMAILS: "admin@test.dama.my",
+      // The second address checks that a listed email is not made admin once a super admin exists
+      SUPER_ADMIN_EMAILS: "admin@test.dama.my,late-admin@test.dama.my",
       BANK_ACCOUNT_NUMBER: "1234567890",
       CRON_SECRET: "test-cron-secret",
       SMTP_HOST: "",
+      // next start also loads .env.production.local: blank the real email and storage settings
+      MS_TENANT_ID: "",
+      MS_CLIENT_ID: "",
+      MS_CLIENT_SECRET: "",
+      MS_SENDER: "",
       DATABASE_URL: "",
       S3_BUCKET: "",
     },

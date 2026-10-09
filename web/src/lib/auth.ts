@@ -18,13 +18,42 @@ const randomToken = () => crypto.randomBytes(32).toString("base64url");
 export const hashPassword = (pw: string) => bcrypt.hash(pw, 10);
 export const verifyPassword = (pw: string, hash: string) => bcrypt.compare(pw, hash);
 
-// Super admins are named by email in the environment (SUPER_ADMIN_EMAILS=a@x.com,b@y.com)
+// The first super admin is named by email in the environment (SUPER_ADMIN_EMAILS=a@x.com,b@y.com)
 export function isBootstrapAdmin(email: string) {
   return (process.env.SUPER_ADMIN_EMAILS || "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
     .includes(email.toLowerCase());
+}
+
+// Makes a SUPER_ADMIN_EMAILS account super admin, but only once its email is confirmed and only while
+// the system has no super admin yet. After that, roles are managed in Admin → Admins (so a demotion sticks).
+export async function grantBootstrapAdmin(user: User): Promise<User> {
+  if (user.role !== "member" || !user.emailVerifiedAt || user.disabled || !isBootstrapAdmin(user.email)) return user;
+  const db = await getDb();
+  const [existing] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.role, "super_admin")).limit(1);
+  if (existing) return user;
+  const [updated] = await db.update(schema.users).set({ role: "super_admin" }).where(eq(schema.users.id, user.id)).returning();
+  return updated;
+}
+
+// Where to send someone after login: only a path on this site (never "//host" or "/\host")
+export function safeNext(next: unknown): string | null {
+  if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return null;
+  try {
+    const url = new URL(next, "http://local");
+    return url.origin === "http://local" ? `${url.pathname}${url.search}${url.hash}` : null;
+  } catch {
+    return null;
+  }
+}
+
+// Compared against when no account matches, so a wrong email takes as long as a wrong password
+const DUMMY_HASH = bcrypt.hashSync("dama-timing-placeholder", 10);
+export async function checkPassword(pw: string, user: User | undefined) {
+  const ok = await bcrypt.compare(pw, user?.passwordHash ?? DUMMY_HASH);
+  return Boolean(user) && ok;
 }
 
 export async function createSession(userId: string) {
@@ -84,6 +113,7 @@ export async function requireVerifiedUser(next?: string): Promise<User> {
 
 export async function requireAdmin(perm: Permission = "view"): Promise<User & { role: Role }> {
   const user = await requireUser("/admin");
+  if (!user.emailVerifiedAt) redirect("/check-email");
   if (!can(user.role, perm)) {
     if (can(user.role, "view")) redirect("/admin?denied=1");
     redirect("/portal");

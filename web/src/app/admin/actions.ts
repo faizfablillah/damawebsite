@@ -7,8 +7,10 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
 import type { PaymentMethod, PipelineStatus } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { destroyAllSessions, requireAdmin } from "@/lib/auth";
 import { ADMIN_ROLES, type Role } from "@/lib/config";
+import { plain } from "@/lib/form-state";
+import { flashStamp, setFlash } from "@/lib/flash";
 import { parseRinggit, todayKL } from "@/lib/format";
 import { keepValues, type FormState } from "@/lib/form-state";
 import { audit } from "@/lib/audit";
@@ -36,7 +38,9 @@ async function done(msg: string): Promise<never> {
   revalidatePath("/admin", "layout");
   const ref = (await headers()).get("referer");
   const url = new URL(ref && new URL(ref).pathname.startsWith("/admin") ? ref : "http://local/admin");
-  url.searchParams.set("msg", msg);
+  url.searchParams.delete("msg");
+  url.searchParams.set("done", flashStamp());
+  await setFlash(msg);
   redirect(`${url.pathname}${url.search}`);
 }
 function oops(e: unknown, data?: FormData): FormState {
@@ -159,8 +163,15 @@ export async function resendEmailAction(membershipId: string, kind: "welcome" | 
 
 export async function pipelineAction(organisationId: string, _: FormState, data: FormData): Promise<FormState> {
   const admin = await requireAdmin("members");
-  const status = String(data.get("pipelineStatus")) as PipelineStatus;
-  const pic = String(data.get("assignedPicId") ?? "");
+  const parsed = z
+    .object({
+      pipelineStatus: z.enum(["new_lead", "pic_contacted", "invoice_sent", "pending_payment", "payment_review", "pending_user_list", "active", "closed"] satisfies PipelineStatus[]),
+      assignedPicId: z.union([z.uuid(), z.literal("")]).optional(),
+    })
+    .safeParse(Object.fromEntries(data));
+  if (!parsed.success) return { error: "Choose a valid stage and PIC." };
+  const status = parsed.data.pipelineStatus;
+  const pic = parsed.data.assignedPicId ?? "";
   const db = await getDb();
   await db
     .update(schema.organisations)
@@ -181,7 +192,7 @@ export async function orgNoteAction(organisationId: string, _: FormState, data: 
 
 export async function orgDocumentAction(organisationId: string, _: FormState, data: FormData): Promise<FormState> {
   const admin = await requireAdmin("members");
-  const kind = String(data.get("kind")) as "proposal" | "invoice" | "other";
+  const kind = z.enum(["proposal", "invoice", "other"]).catch("other").parse(data.get("kind"));
   try {
     const upload = await validateUpload(data.get("file"), "a document");
     const key = await saveFile("corporate-docs", upload!);
@@ -195,8 +206,8 @@ export async function orgDocumentAction(organisationId: string, _: FormState, da
 }
 
 const seatSchema = z.object({
-  name: z.string().trim().min(2, "Enter a name."),
-  jobTitle: z.string().trim().optional(),
+  name: plain(z.string().trim().min(2, "Enter a name.").max(120)),
+  jobTitle: plain(z.string().trim().max(120)).optional(),
   email: z.string().trim().toLowerCase().email("Enter a valid email."),
   phone: z.string().trim().optional(),
 });
@@ -289,6 +300,21 @@ export async function setRoleAction(_: FormState, data: FormData): Promise<FormS
   await db.update(schema.users).set({ role }).where(eq(schema.users.id, user.id));
   await audit(admin.id, "user.role", "user", user.id, { role });
   return done(`${user.name} is now ${role === "member" ? "a regular member" : role.replace("_", " ")}.`);
+}
+
+export async function setDisabledAction(_: FormState, data: FormData): Promise<FormState> {
+  const admin = await requireAdmin("admins");
+  const email = String(data.get("accountEmail") ?? "").trim().toLowerCase();
+  const disable = data.get("mode") !== "enable";
+  const db = await getDb();
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.email, email));
+  if (!user) return { error: "No account with that email.", values: keepValues(data) };
+  if (user.id === admin.id) return { error: "You can't disable your own account." };
+  await db.update(schema.users).set({ disabled: disable }).where(eq(schema.users.id, user.id));
+  // A disabled account is signed out everywhere straight away
+  if (disable) await destroyAllSessions(user.id);
+  await audit(admin.id, disable ? "user.disabled" : "user.enabled", "user", user.id);
+  return done(`${user.name}'s account is now ${disable ? "disabled and signed out" : "enabled again"}.`);
 }
 
 // ---------- import ----------

@@ -26,7 +26,14 @@ export async function GET(_req: Request, ctx: RouteContext<"/files/[...key]">) {
   try {
     const buf = await readFile(key);
     return new Response(new Uint8Array(buf), {
-      headers: { "Content-Type": contentTypeFor(key), "Content-Disposition": "inline", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" },
+      headers: {
+        "Content-Type": contentTypeFor(key),
+        "Content-Disposition": "inline",
+        // Images can't run anything; PDFs open in the browser's own isolated viewer (a sandbox would block it)
+        ...(contentTypeFor(key) === "application/pdf" ? {} : { "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" }),
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
     });
   } catch {
     return new Response("Not found", { status: 404 });

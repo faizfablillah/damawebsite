@@ -1,4 +1,7 @@
 import Papa from "papaparse";
+
+// Cells starting with = + - @ get a leading quote so a member's name can't run as a formula in Excel
+const toCsv = (rows: object[]) => Papa.unparse(rows, { escapeFormulae: true });
 import { asc, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -37,7 +40,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]
     await audit(user.id, "export.members", "export", null, { rows: rows.length });
     return csv(
       `dama-members-${date}.csv`,
-      Papa.unparse(
+      toCsv(
         rows.map(({ m, u, o }) => ({
           member_id: m.memberCode ?? "",
           category: CATEGORY_LABEL[m.category],
@@ -75,7 +78,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]
     await audit(user.id, "export.payments", "export", null, { rows: rows.length });
     return csv(
       `dama-payments-${date}.csv`,
-      Papa.unparse(
+      toCsv(
         rows.map(({ p, o, m, u, org, r }) => ({
           receipt_no: r?.receiptNo ?? "",
           receipt_date: r?.data.receiptDate ?? "",
@@ -107,7 +110,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]
     await audit(user.id, "export.seats", "export", null, { rows: rows.length });
     return csv(
       `dama-corporate-seats-${date}.csv`,
-      Papa.unparse(
+      toCsv(
         rows.map(({ s, m, org }) => ({
           organisation: org.name,
           seat_id: seatCode(m.memberCode, s.seatNo),

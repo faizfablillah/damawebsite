@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { requireAdmin } from "@/lib/auth";
 import type { MembershipStatus } from "@/db/schema";
 import { EligibilityBadge, Empty, MembershipBadge } from "@/components/ui";
 import { CATEGORY_LABEL, TIERS, type Category } from "@/lib/config";
@@ -9,6 +10,8 @@ import { fmtDate } from "@/lib/format";
 const STATUSES: MembershipStatus[] = ["pending", "active", "grace", "expired", "suspended", "rejected", "cancelled"];
 
 export default async function MembersPage({ searchParams }: PageProps<"/admin/members">) {
+  // Each page checks access itself: the layout check alone does not protect the page payload
+  await requireAdmin("view");
   const sp = await searchParams;
   const category = typeof sp.category === "string" && ["E", "I", "C"].includes(sp.category) ? (sp.category as Category) : null;
   const status = typeof sp.status === "string" && STATUSES.includes(sp.status as MembershipStatus) ? (sp.status as MembershipStatus) : null;

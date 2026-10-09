@@ -10,16 +10,17 @@ import {
   createSession,
   destroyAllSessions,
   destroySession,
+  checkPassword,
   getCurrentUser,
+  grantBootstrapAdmin,
   hashPassword,
-  isBootstrapAdmin,
-  verifyPassword,
+  safeNext,
 } from "@/lib/auth";
 import { isAcademicEmail, PDPA_CONSENT_VERSION, STATE_CODES, can } from "@/lib/config";
 import { sendEmail, templates } from "@/lib/email";
 import { audit } from "@/lib/audit";
-import { invalid, keepValues, type FormState } from "@/lib/form-state";
-import { LIMITS, blockedFor, clearAttempts, clientIp, emailKey, ipKey, minutesText, recordAttempt } from "@/lib/rate-limit";
+import { invalid, keepValues, plain, type FormState } from "@/lib/form-state";
+import { LIMITS, blockedFor, clearEmailAttempts, clientIp, emailIpKey, emailKey, ipKey, minutesText, recordAttempt } from "@/lib/rate-limit";
 
 const emailField = z.string().trim().toLowerCase().email("Enter a valid email address.");
 const phoneField = z
@@ -30,11 +31,11 @@ const passwordField = z.string().min(8, "Use at least 8 characters.").max(200);
 
 const signupSchema = z
   .object({
-    name: z.string().trim().min(2, "Enter your full name.").max(120),
+    name: plain(z.string().trim().min(2, "Enter your full name.").max(120)),
     email: emailField,
     phone: phoneField,
-    jobTitle: z.string().trim().max(120).optional(),
-    organisation: z.string().trim().max(160).optional(),
+    jobTitle: plain(z.string().trim().max(120)).optional(),
+    organisation: plain(z.string().trim().max(160)).optional(),
     address: z.string().trim().min(5, "Enter your correspondence address.").max(400),
     stateCode: z.enum(STATE_CODES, { message: "Select your state." }),
     password: passwordField,
@@ -54,7 +55,9 @@ export async function signupAction(_: FormState, data: FormData): Promise<FormSt
   const d = parsed.data;
   const ip = ipKey(await clientIp());
   const wait = await blockedFor("signup", ip, LIMITS.signupPerIp);
-  if (wait) return { error: `Too many accounts have been created from your network. Please try again in ${minutesText(wait)}.`, values: keepValues(data) };
+  if (wait) return { error: `Too many sign-up attempts from your network. Please try again in ${minutesText(wait)}.`, values: keepValues(data) };
+  // Every attempt counts, so the "already registered" reply can't be used to test many addresses
+  await recordAttempt("signup", [ip]);
   const db = await getDb();
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, d.email));
   if (existing) {
@@ -71,12 +74,10 @@ export async function signupAction(_: FormState, data: FormData): Promise<FormSt
       organisation: d.organisation || null,
       address: d.address,
       stateCode: d.stateCode,
-      role: isBootstrapAdmin(d.email) ? "super_admin" : "member",
       consentAt: new Date(),
       consentVersion: PDPA_CONSENT_VERSION,
     })
     .returning();
-  await recordAttempt("signup", [ip]);
   await audit(user.id, "user.signed_up", "user", user.id, { tier: d.tier });
   const token = await createAuthToken(user.id, "verify_email");
   await sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token), { userId: user.id });
@@ -89,8 +90,13 @@ const loginSchema = z.object({ email: emailField, password: z.string().min(1, "E
 export async function loginAction(_: FormState, data: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(data));
   if (!parsed.success) return invalid(data, parsed.error);
-  const keys = [emailKey(parsed.data.email), ipKey(await clientIp())];
-  const wait = Math.max(await blockedFor("login_failed", keys[0], LIMITS.loginPerEmail), await blockedFor("login_failed", keys[1], LIMITS.loginPerIp));
+  const ip = await clientIp();
+  const keys = [emailIpKey(parsed.data.email, ip), emailKey(parsed.data.email), ipKey(ip)];
+  const wait = Math.max(
+    await blockedFor("login_failed", keys[0], LIMITS.loginPerEmailIp),
+    await blockedFor("login_failed", keys[1], LIMITS.loginPerEmail),
+    await blockedFor("login_failed", keys[2], LIMITS.loginPerIp),
+  );
   if (wait) {
     return {
       error: `Too many failed login attempts. Please try again in ${minutesText(wait)}, or reset your password.`,
@@ -98,20 +104,16 @@ export async function loginAction(_: FormState, data: FormData): Promise<FormSta
     };
   }
   const db = await getDb();
-  const [user] = await db.select().from(schema.users).where(eq(schema.users.email, parsed.data.email));
-  const ok = user && !user.disabled && (await verifyPassword(parsed.data.password, user.passwordHash));
-  if (!ok) {
+  const [found] = await db.select().from(schema.users).where(eq(schema.users.email, parsed.data.email));
+  const ok = await checkPassword(parsed.data.password, found);
+  if (!ok || !found || found.disabled) {
     await recordAttempt("login_failed", keys);
     return { error: "Incorrect email or password.", values: keepValues(data) };
   }
-  await clearAttempts("login_failed", [keys[0]]);
-  if (user.role === "member" && isBootstrapAdmin(user.email)) {
-    await db.update(schema.users).set({ role: "super_admin" }).where(eq(schema.users.id, user.id));
-    user.role = "super_admin";
-  }
+  await clearEmailAttempts("login_failed", found.email);
+  const user = await grantBootstrapAdmin(found);
   await createSession(user.id);
-  const next = parsed.data.next;
-  redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : can(user.role, "view") ? "/admin" : "/portal");
+  redirect(safeNext(parsed.data.next) ?? (can(user.role, "view") ? "/admin" : "/portal"));
 }
 
 export async function logoutAction() {
@@ -163,7 +165,7 @@ export async function resetPasswordAction(_: FormState, data: FormData): Promise
     .where(eq(schema.users.id, userId))
     .returning();
   await destroyAllSessions(userId);
-  await clearAttempts("login_failed", [emailKey(user.email)]);
+  await clearEmailAttempts("login_failed", user.email);
   await audit(userId, "user.password_reset", "user", userId);
   await createSession(user.id);
   redirect("/portal?passwordReset=1");

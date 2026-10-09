@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { requireAdmin } from "@/lib/auth";
 import { ActionForm, Submit } from "@/components/form";
 import { Empty, MembershipBadge } from "@/components/ui";
 import { CATEGORY_LABEL } from "@/lib/config";
@@ -9,6 +10,8 @@ import { getSettings } from "@/lib/settings";
 import { runDailyAction } from "../actions";
 
 export default async function RenewalsPage() {
+  // Each page checks access itself: the layout check alone does not protect the page payload
+  await requireAdmin("view");
   const db = await getDb();
   const today = todayKL();
   const { graceDays } = await getSettings();

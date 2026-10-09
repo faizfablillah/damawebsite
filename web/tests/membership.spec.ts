@@ -380,6 +380,12 @@ test("security: redirects, headers, robots, cron and fake banners", async ({ pag
     expect(h["x-content-type-options"]).toBe("nosniff");
     expect(h["x-powered-by"]).toBeUndefined();
   }
+  // Signed-out visitors get a real redirect (not a 200 page that redirects later)
+  for (const url of ["/admin", "/admin/members", "/portal"]) {
+    const res = await page.request.get(url, { maxRedirects: 0 });
+    expect(res.status(), url).toBe(307);
+    expect(res.headers()["location"]).toContain("/login");
+  }
   const robots = await (await page.request.get("/robots.txt")).text();
   expect(robots).toContain("Disallow: /admin");
   expect(await (await page.request.get("/sitemap.xml")).text()).toContain("/membership");

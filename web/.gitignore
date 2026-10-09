@@ -49,3 +49,6 @@ next-env.d.ts
 
 # Backups and safety copies made by scripts/ contain personal data: never commit
 *.json.gz
+
+.vercel
+.env*

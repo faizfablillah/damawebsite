@@ -140,7 +140,7 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 |---|---|
 | Site | https://dama-malaysia.vercel.app |
 | Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
-| Database + files | Supabase project `dama-malaysia` (Singapore, ref `zzwgvnxywxclxjfyrjok`), transaction pooler port 6543, private bucket `dama-files` (S3 access key "vercel") |
+| Database + files | Supabase project `dama-malaysia` (Singapore, ref `zzwgvnxywxclxjfyrjok`), **session pooler port 5432** (switched from the transaction pooler 6543 on 9 Oct 2026 — see Gotchas), private bucket `dama-files` (S3 access key "vercel") |
 | Email | Microsoft Graph, Entra app **"DAMA website"** in the keppstone tenant (Mail.Send application permission, admin-consented; client secret valid to Oct 2028). ~100 external recipients/day limit for onmicrosoft.com senders; mail may land in Junk |
 | Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily`: statuses + renewal reminders, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
 | Secrets | git-ignored `web/.env.production.local` (all production values) + Vercel env vars (secrets marked sensitive) |
@@ -187,6 +187,7 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 
 ## 10. Gotchas learned
 
+- **Use Supabase's session pooler (port 5432), not the transaction pooler (6543).** With the transaction pooler, when more queries were queued than the client had connections (the admin dashboard runs ~13 at once on a pool of 5), postgres.js lost one or two of them and the page hung until Vercel's 300 s timeout ("Admin does nothing", 9 Oct 2026). Reproduced every time on 6543 (with and without pipelining or type fetching); 50/50 queries fine on 5432. `scripts/check-db-reconnect.ts` re-checks it. The client also closes idle connections after 5 s and starts fresh after a 10 s gap, because Vercel pauses instances and their sockets can die meanwhile (`src/db/index.ts`).
 - **Never query outside the transaction inside `db.transaction`** — the embedded local database has one connection and deadlocks (read settings before the transaction).
 - Admin actions redirect back with `?msg=` (shown by `Flash`) because the row/form that triggered them often disappears.
 - Windows/PowerShell: Node, Git and GitHub CLI were installed with winget; in a fresh tool shell reload PATH from the registry. The GitHub CLI token lacks the `workflow` scope, so GitHub Actions files can't be pushed (that's why Pages publishes from `docs/`).

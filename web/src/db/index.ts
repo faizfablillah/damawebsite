@@ -15,15 +15,25 @@ type DB = ReturnType<typeof drizzlePglite<typeof schema>>;
 export const DATA_DIR = path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR || ".data");
 const MIGRATIONS = path.join(/*turbopackIgnore: true*/ process.cwd(), "drizzle");
 
-const g = globalThis as unknown as { __damaDb?: Promise<DB> };
+const g = globalThis as unknown as { __damaDb?: Promise<DB>; __damaMigrated?: boolean; __damaUsedAt?: number; __damaEnd?: () => Promise<void> };
+
+// On Vercel the app is paused between requests; sockets to the database can die silently while
+// paused, and a query sent on a dead socket hangs until the 300 s function timeout. So connections
+// are closed after a few idle seconds, and after any longer gap the whole client is replaced.
+const IDLE_SECONDS = 5;
+const STALE_AFTER_MS = 10_000;
 
 async function create(): Promise<DB> {
   const url = process.env.DATABASE_URL;
   if (url) {
     const postgres = (await import("postgres")).default;
-    const client = postgres(url, { prepare: false, max: 5 });
+    const client = postgres(url, { prepare: false, max: 5, idle_timeout: IDLE_SECONDS, max_lifetime: 60 * 10, connect_timeout: 10 });
+    g.__damaEnd = () => client.end({ timeout: 30 });
     const db = drizzlePostgres(client, { schema });
-    if (process.env.AUTO_MIGRATE !== "false") await migratePostgres(db, { migrationsFolder: MIGRATIONS });
+    if (process.env.AUTO_MIGRATE !== "false" && !g.__damaMigrated) {
+      await migratePostgres(db, { migrationsFolder: MIGRATIONS });
+      g.__damaMigrated = true;
+    }
     return db as unknown as DB;
   }
   const { PGlite } = await import("@electric-sql/pglite");
@@ -35,6 +45,14 @@ async function create(): Promise<DB> {
 }
 
 export function getDb(): Promise<DB> {
+  const now = Date.now();
+  if (g.__damaDb && process.env.DATABASE_URL && g.__damaUsedAt && now - g.__damaUsedAt > STALE_AFTER_MS) {
+    // Quiet for a while (possibly paused): start a fresh client rather than trust old sockets
+    const end = g.__damaEnd;
+    g.__damaDb = undefined;
+    end?.().catch(() => {});
+  }
+  g.__damaUsedAt = now;
   if (!g.__damaDb) g.__damaDb = create();
   return g.__damaDb;
 }

@@ -6,7 +6,6 @@ place: Crowne Plaza Kuala Lumpur City Centre
 summary: DAMA is a media partner of World Data Summit APAC, 29–30 October 2026 in Kuala Lumpur. DAMA members save 10% on registration.
 images:
   - /assets/img/partners/wds-apac-2026.jpg | World Data Summit APAC, 29–30 October 2026, Kuala Lumpur, Malaysia
-draft: true
 ---
 
 DAMA Kuala Lumpur & Selangor is a media partner of **World Data Summit: APAC Edition 2026**, taking place on **29–30 October** at **Crowne Plaza Kuala Lumpur City Centre**.

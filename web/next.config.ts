@@ -27,6 +27,17 @@ const SECURITY_HEADERS = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
 ];
 
+// The main address (e.g. dama.org.my), set as CANONICAL_HOST in Vercel once its DNS works.
+// Visitors on the other addresses are sent there; /api is left alone so scheduled jobs never get a redirect.
+const CANONICAL_HOST = process.env.CANONICAL_HOST;
+const OTHER_HOSTS = ["www.dama.org.my", "dama-malaysia.vercel.app"].filter((h) => h !== CANONICAL_HOST);
+const hostRedirects = CANONICAL_HOST
+  ? OTHER_HOSTS.flatMap((host) => [
+      { source: "/", has: [{ type: "host" as const, value: host }], destination: `https://${CANONICAL_HOST}/`, permanent: true },
+      { source: "/:path((?!api/).+)", has: [{ type: "host" as const, value: host }], destination: `https://${CANONICAL_HOST}/:path`, permanent: true },
+    ])
+  : [];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Native/wasm packages must not be bundled
@@ -52,6 +63,7 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      ...hostRedirects,
       { source: "/index.html", destination: "/", permanent: true },
       ...STATIC_PAGES.map((p) => ({ source: `/${p}.html`, destination: `/${p}`, permanent: true })),
     ];

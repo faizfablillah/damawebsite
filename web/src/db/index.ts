@@ -27,7 +27,8 @@ async function create(): Promise<DB> {
   const url = process.env.DATABASE_URL;
   if (url) {
     const postgres = (await import("postgres")).default;
-    const client = postgres(url, { prepare: false, max: 5, idle_timeout: IDLE_SECONDS, max_lifetime: 60 * 10, connect_timeout: 10 });
+    // Pool of 20: with the transaction pooler, postgres.js can lose queries that queue behind a small pool
+    const client = postgres(url, { prepare: false, max: 20, idle_timeout: IDLE_SECONDS, max_lifetime: 60 * 10, connect_timeout: 10 });
     g.__damaEnd = () => client.end({ timeout: 30 });
     const db = drizzlePostgres(client, { schema });
     if (process.env.AUTO_MIGRATE !== "false" && !g.__damaMigrated) {

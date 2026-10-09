@@ -11,6 +11,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/files/[...key]">) {
   const key = parts.map(decodeURIComponent).join("/");
   const user = await getCurrentUser();
   if (!user) return new Response("Please log in.", { status: 401 });
+  // Database backups hold every record (including password hashes): super admins only
+  if (key.startsWith("backups/") && !can(user.role, "admins")) return new Response("Not found", { status: 404 });
   if (!can(user.role, "view")) {
     const db = await getDb();
     const [payment] = await db.select().from(schema.payments).where(eq(schema.payments.proofKey, key));

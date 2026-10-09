@@ -14,6 +14,7 @@ const ALLOWED: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = 
   "image/png": { ext: "png", magic: (b) => b.subarray(1, 4).toString() === "PNG" },
   "image/webp": { ext: "webp", magic: (b) => b.subarray(8, 12).toString() === "WEBP" },
 };
+const SYSTEM_TYPES: Record<string, string> = { gz: "application/gzip" };
 export const ACCEPT_ATTR = "application/pdf,image/jpeg,image/png,image/webp";
 
 export class UploadError extends Error {}
@@ -69,7 +70,46 @@ export async function readFile(key: string): Promise<Buffer> {
   return fs.readFile(path.join(DATA_DIR, "uploads", key));
 }
 
+// Raw access for system files such as nightly backups (keys chosen by the server, never by users)
+export async function putObject(key: string, body: Buffer, contentType: string) {
+  if (s3Enabled()) {
+    const { PutObjectCommand } = await import("@aws-sdk/client-s3");
+    await (await s3()).send(new PutObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key, Body: body, ContentType: contentType }));
+  } else {
+    const full = path.join(DATA_DIR, "uploads", key);
+    await fs.mkdir(path.dirname(full), { recursive: true });
+    await fs.writeFile(full, body);
+  }
+}
+
+export async function listObjects(prefix: string): Promise<{ key: string; size: number }[]> {
+  if (s3Enabled()) {
+    const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
+    const client = await s3();
+    const out: { key: string; size: number }[] = [];
+    let token: string | undefined;
+    do {
+      const res = await client.send(new ListObjectsV2Command({ Bucket: process.env.S3_BUCKET, Prefix: prefix, ContinuationToken: token }));
+      for (const o of res.Contents ?? []) if (o.Key) out.push({ key: o.Key, size: o.Size ?? 0 });
+      token = res.IsTruncated ? res.NextContinuationToken : undefined;
+    } while (token);
+    return out;
+  }
+  const dir = path.join(DATA_DIR, "uploads", prefix);
+  const names = await fs.readdir(dir).catch(() => [] as string[]);
+  return Promise.all(names.map(async (n) => ({ key: `${prefix}${n}`, size: (await fs.stat(path.join(dir, n))).size })));
+}
+
+export async function deleteObject(key: string) {
+  if (s3Enabled()) {
+    const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+    await (await s3()).send(new DeleteObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key }));
+  } else {
+    await fs.rm(path.join(DATA_DIR, "uploads", key), { force: true });
+  }
+}
+
 export function contentTypeFor(key: string) {
   const ext = key.split(".").pop();
-  return Object.entries(ALLOWED).find(([, t]) => t.ext === ext)?.[0] ?? "application/octet-stream";
+  return Object.entries(ALLOWED).find(([, t]) => t.ext === ext)?.[0] ?? SYSTEM_TYPES[ext ?? ""] ?? "application/octet-stream";
 }

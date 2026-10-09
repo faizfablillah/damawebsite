@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import zlib from "node:zlib";
 import { expect, test } from "@playwright/test";
 import { FAKE_PDF, lastMail, linkIn, login, mails, PASSWORD, PNG, signup, submitPayment, verifyEmail } from "./helpers";
 
@@ -476,4 +477,34 @@ test("security: password change and disabling sign out other devices", async ({ 
   await expect(page.getByText("account is now enabled again")).toBeVisible();
   await login(otherPage, INDIVIDUAL);
   await other.close();
+});
+
+test("nightly backup and admin alerts", async ({ page }) => {
+  // The daily job makes a backup; ?testAlert=1 emails a test alert to the super admins
+  const res = await page.request.get("/api/cron/daily?testAlert=1", { headers: { Authorization: "Bearer test-cron-secret" } });
+  const body = await res.json();
+  expect(body.backup.key).toMatch(/^backups\/dama-\d{4}-\d{2}-\d{2}\.json\.gz$/);
+  expect(body.problems).toEqual(["This is a test alert. Everything is fine."]);
+  expect((await lastMail(ADMIN, "adminAlert")).text).toContain("This is a test alert");
+
+  // Super admin downloads it from Admin → Export; it holds the data but no logins
+  await login(page, ADMIN);
+  await page.goto("/admin/export");
+  const link = page.getByRole("link", { name: /^dama-\d{4}-\d{2}-\d{2}\.json\.gz$/ });
+  const href = (await link.getAttribute("href"))!;
+  const file = await page.request.get(href);
+  expect(file.status()).toBe(200);
+  const backup = JSON.parse(zlib.gunzipSync(await file.body()).toString("utf8"));
+  expect(backup.format).toBe("dama-backup-v1");
+  expect(backup.tables.users.map((u: { email: string }) => u.email)).toContain(ADMIN);
+  expect(backup.tables.memberships.length).toBeGreaterThan(3);
+  expect(backup.tables.sessions).toBeUndefined();
+  fs.mkdirSync(path.resolve("test-results"), { recursive: true });
+  fs.writeFileSync(path.resolve("test-results", "backup.json.gz"), await file.body());
+
+  // Finance (or any other admin) can't download backups
+  await login(page, INDIVIDUAL);
+  expect((await page.request.get(href)).status()).toBe(404);
+  await page.goto("/admin/export");
+  await expect(page.getByText("Database backups")).toHaveCount(0);
 });

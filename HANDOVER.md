@@ -12,7 +12,7 @@ This file is the single place to pick the project up again: what exists, why it 
 |---|---|---|
 | Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages (contact email fixed to info.damamalaysia@gmail.com). |
 | Website + membership system | `web/` (Next.js app) | **Live for board testing** at https://dama-malaysia.vercel.app (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
-| Automated tests | `web/tests/` | 16 end-to-end tests (incl. 4 security tests), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
+| Automated tests | `web/tests/` | 17 end-to-end tests (incl. 4 security tests and backups/alerts), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 | Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 30 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, Part 5 (added 6 Oct, **board only**: comparison with the earlier vendor quotation; details in `PRIVATE-CONTEXT.md`), technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
 
@@ -142,12 +142,21 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 | Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
 | Database + files | Supabase project `dama-malaysia` (Singapore, ref `zzwgvnxywxclxjfyrjok`), transaction pooler port 6543, private bucket `dama-files` (S3 access key "vercel") |
 | Email | Microsoft Graph, Entra app **"DAMA website"** in the keppstone tenant (Mail.Send application permission, admin-consented; client secret valid to Oct 2028). ~100 external recipients/day limit for onmicrosoft.com senders; mail may land in Junk |
-| Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily` |
+| Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily`: statuses + renewal reminders, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
 | Secrets | git-ignored `web/.env.production.local` (all production values) + Vercel env vars (secrets marked sensitive) |
 
 Re-running the setup or changing a setting: edit `web/.env.production.local`, update the variable in Vercel (`npx vercel env add NAME production`), redeploy. Never paste secrets in chat — log in with `! npx vercel login`, `! az login`, or put values in the git-ignored files.
 
 **Still to do before real members pay:** upgrade Vercel to **Pro (~USD 20/month)** (Hobby is non-commercial only); wipe the board's test data; import existing members; later point `dama.org.my` at the app and retire `docs/` / GitHub Pages.
+
+**Maintenance scripts** (`web/scripts/`, run from `web/`; each shows a dry run unless `--confirm` is given, and saves a local `*.json.gz` safety copy first — these files hold personal data and are git-ignored):
+
+| Task | Command |
+|---|---|
+| Launch day: wipe test data, restart Member IDs / receipt numbers at 0001, keep Settings and your account | `npx tsx --env-file=.env.production.local scripts/launch-reset.ts --keep=faiz@keppstone.onmicrosoft.com --confirm`, then empty `payment-proof/`, `student-proof/`, `corporate-docs/` in Supabase → Storage → dama-files |
+| Restore a backup (download it from Admin → Export first) | `npx tsx --env-file=.env.production.local scripts/restore-backup.ts dama-YYYY-MM-DD.json.gz --confirm` |
+
+Backups contain database records only; uploaded files stay in the bucket. Supabase's free plan has no downloadable backups of its own, so download one from Admin → Export now and then and keep it in DAMA's drive (not email). Restore was tested end to end on 9 Oct 2026 (restored data identical to the backup).
 
 Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pro (+ Supabase Pro later). Board's estimate was RM 3,050/year (~20 individual members).
 
@@ -164,7 +173,7 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 - [ ] **Restrict the Entra app** to Faiz's mailbox only (Exchange Online application access policy / RBAC; the keppstone tenant has 16 users). Needs `Connect-ExchangeOnline` login by Faiz.
 - [ ] Switch email to info.damamalaysia@gmail.com once accessible (remove `MS_*`, add `SMTP_*` in Vercel).
 - [ ] Delete the Supabase CLI access token after setup (Supabase → Account → Access Tokens) and `web/.env.supabase-cli`.
-- [ ] Before launch: wipe test data from the production database; move Vercel/Supabase to DAMA-owned accounts (or consider Microsoft for Nonprofits — DAMA-owned tenant, possible Azure credits).
+- [ ] Before launch: wipe test data with `scripts/launch-reset.ts` (dry run on production checked 9 Oct: 3 test memberships, 2 test accounts); move Vercel/Supabase to DAMA-owned accounts (or consider Microsoft for Nonprofits — DAMA-owned tenant, possible Azure credits).
 - [ ] Upgrade Vercel to **Pro** before real members pay; later move Vercel/Supabase to DAMA-owned accounts.
 - [ ] Replace placeholder **testimonials**; review **event write-ups**.
 - [ ] Get full-resolution **board headshots** and AFED / Launchpad / MMU event photos (current ones are extracted from the Infopack PDF).

@@ -38,6 +38,12 @@ function mail(title: string, paragraphs: string[], cta?: { label: string; url: s
 }
 
 export const templates = {
+  adminAlert: (problems: string[]) =>
+    mail(
+      "DAMA website: something needs attention",
+      ["The daily check of the membership system found:", problems.map((x) => `• ${esc(x)}`).join("<br>"), "Members can still use the site unless it says otherwise. Check Admin → Email log, or the Vercel logs, for details."],
+      { label: "Open the admin", url: `${APP_URL}/admin` },
+    ),
   verifyEmail: (name: string, token: string) =>
     mail("Confirm your email address", [`Hi ${esc(name)},`, "Thanks for signing up with DAMA Kuala Lumpur &amp; Selangor. Please confirm your email address to continue your membership application.", "This link expires in 72 hours."], { label: "Confirm email", url: `${APP_URL}/verify-email?token=${token}` }),
   resetPassword: (name: string, token: string) =>

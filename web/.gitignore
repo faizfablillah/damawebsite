@@ -46,3 +46,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /screenshots/
+
+# Backups and safety copies made by scripts/ contain personal data: never commit
+*.json.gz

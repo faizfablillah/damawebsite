@@ -53,6 +53,7 @@ npx next build; $env:E2E_PROD=1; npx playwright test tests/membership.spec.ts   
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | one email option | Sending email. Gmail: `smtp.gmail.com`, `465`, the Gmail address and an **app password** |
 | `CRON_SECRET` | yes | Protects `/api/cron/daily`; the scheduler sends `Authorization: Bearer <secret>` |
 | `BANK_NAME`, `BANK_ACCOUNT_NAME`, `BANK_ACCOUNT_NUMBER` | optional | Starting bank details (editable later in Admin → Settings) |
+| `ALERT_EMAILS` | no | Who gets the daily problem alerts (comma-separated). Default: every super admin |
 | `DATA_DIR` | no | Local data folder (default `.data`) |
 
 Never commit `.env.local` — it holds secrets.

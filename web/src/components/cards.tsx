@@ -24,10 +24,19 @@ const Arrow = () => (
   </svg>
 );
 
+// Uploaded covers live in storage; a key starting with "/" is a file in public/ (e.g. a partner's banner)
 export const eventImage = (e: Pick<Event, "imageKey">) =>
-  e.imageKey ? `/event-images/${e.imageKey.split("/").map(encodeURIComponent).join("/")}` : "/assets/img/events/launch-panel.jpg";
+  !e.imageKey
+    ? "/assets/img/events/launch-panel.jpg"
+    : e.imageKey.startsWith("/")
+      ? e.imageKey
+      : `/event-images/${e.imageKey.split("/").map(encodeURIComponent).join("/")}`;
+
+export const eventTag = (e: Event) =>
+  e.status === "cancelled" ? "Cancelled" : e.externalUrl ? "Partner event" : e.audience === "members" ? "Members only" : (e.category ?? "Event");
 
 export function priceLabel(e: Event) {
+  if (e.externalUrl) return e.memberOffer ? `Partner event · ${e.memberOffer}` : "Partner event · register with the organiser";
   const member = e.memberPrice ? rmShort(e.memberPrice) : "Free";
   if (e.audience === "members" || e.nonMemberPrice === null) return `Members only · ${member}`;
   if (!e.memberPrice && !e.nonMemberPrice) return "Free · open to all";
@@ -40,7 +49,7 @@ export function EventCard({ e }: { e: Event }) {
       <div className="event-card__img">
         {/* eslint-disable-next-line @next/next/no-img-element -- uploaded and static images, already sized */}
         <img src={eventImage(e)} alt="" loading="lazy" />
-        <span className="tag">{e.status === "cancelled" ? "Cancelled" : e.audience === "members" ? "Members only" : (e.category ?? "Event")}</span>
+        <span className="tag">{eventTag(e)}</span>
       </div>
       <div className="event-card__body">
         <div className="event-card__date">

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { Notice } from "@/components/ui";
 import { ActionForm, ConfirmButton, Submit } from "@/components/form";
-import { CalendarIcon, PinIcon, eventImage, priceLabel } from "@/components/cards";
+import { CalendarIcon, PinIcon, eventImage, eventTag, priceLabel } from "@/components/cards";
 import { getDb, schema } from "@/db";
 import type { Event } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/events/[slug]">) 
   return { title: e.title, description: e.summary, openGraph: { title: e.title, description: e.summary, images: [eventImage(e)] } };
 }
 
-// Paragraphs typed in the admin form (blank line = new paragraph)
+// Paragraphs typed in the admin form (blank line = new paragraph); bare links become clickable
 const Paras = ({ text }: { text: string }) => (
   <>
     {text
@@ -32,14 +32,11 @@ const Paras = ({ text }: { text: string }) => (
       .split(/\r?\n\s*\r?\n/)
       .filter(Boolean)
       .map((p, i) => (
-        <p key={i} style={{ whiteSpace: "pre-line" }}>
-          {p}
-        </p>
+        <Linkified key={i} text={p} />
       ))}
   </>
 );
 
-// Bare links in materials become clickable
 const Linkified = ({ text }: { text: string }) => (
   <p style={{ whiteSpace: "pre-line" }}>
     {text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
@@ -72,11 +69,29 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
   const closed = registrationClosed(e);
   const ended = hasEnded(e);
   const myPrice = priceFor(e, status.member);
-  const showMaterials = !!e.materials && (status.member || active?.status === "confirmed" || can(user?.role, "events"));
+  const insider = status.member || can(user?.role, "backoffice");
+  const showMaterials = !!e.materials && (insider || active?.status === "confirmed");
   const next = `/events/${e.slug}`;
 
   let panel: React.ReactNode;
-  if (active) {
+  if (e.externalUrl) {
+    // Partner event: the organiser runs registration
+    panel =
+      e.status === "cancelled" ? (
+        <Notice kind="warn">This event has been cancelled.</Notice>
+      ) : ended ? (
+        <p className="muted">This event has ended.</p>
+      ) : (
+        <>
+          <p>
+            This event is organised by <strong>{e.organiser ?? "our partner"}</strong>. Registration and payment are on their website.
+          </p>
+          <a className="btn btn--primary btn--sm" href={e.externalUrl} target="_blank" rel="noopener">
+            Register on the organiser&apos;s site
+          </a>
+        </>
+      );
+  } else if (active) {
     panel =
       active.status === "confirmed" ? (
         <>
@@ -175,7 +190,7 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
       <section className="app-hero">
         <div className="waves waves--right" aria-hidden="true" />
         <div className="container">
-          <p className="eyebrow">{e.audience === "members" ? "Members-only event" : (e.category ?? "Event")}</p>
+          <p className="eyebrow">{e.audience === "members" && !e.externalUrl ? "Members-only event" : eventTag(e)}</p>
           <h1>{e.title}</h1>
           <p>{e.summary}</p>
         </div>
@@ -214,9 +229,15 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
                   <dd>
                     <PinIcon /> {e.venue || (e.onlineUrl ? "Online" : "To be announced")}
                   </dd>
+                  {e.organiser && (
+                    <>
+                      <dt>Organiser</dt>
+                      <dd>{e.organiser}</dd>
+                    </>
+                  )}
                   <dt>Price</dt>
-                  <dd>{priceLabel(e)}</dd>
-                  {e.capacity !== null && !ended && (
+                  <dd>{e.externalUrl ? "See the organiser's website" : priceLabel(e)}</dd>
+                  {e.capacity !== null && !ended && !e.externalUrl && (
                     <>
                       <dt>Places</dt>
                       <dd>{full ? "Fully booked" : `${e.capacity - taken} of ${e.capacity} left`}</dd>
@@ -224,6 +245,25 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
                   )}
                 </dl>
               </section>
+              {e.memberOffer && !ended && (
+                <section className="panel panel--accent">
+                  <h2>Member offer</h2>
+                  <p>
+                    <strong>{e.memberOffer}</strong>
+                  </p>
+                  {insider ? (
+                    e.memberOfferDetails && <p style={{ whiteSpace: "pre-line" }}>{e.memberOfferDetails}</p>
+                  ) : user ? (
+                    <p className="muted-sm">
+                      This offer is for DAMA members. <Link href="/join">Join DAMA</Link> to get it.
+                    </p>
+                  ) : (
+                    <p className="muted-sm">
+                      <Link href={`/login?next=${encodeURIComponent(next)}`}>Log in</Link> to see how to claim it, or <Link href="/join">join DAMA</Link>.
+                    </p>
+                  )}
+                </section>
+              )}
               <section className="panel" id="register">
                 <h2>Registration</h2>
                 {panel}

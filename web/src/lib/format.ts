@@ -78,8 +78,13 @@ export function parseRinggit(input: string): number | null {
 const timeFmt = new Intl.DateTimeFormat("en-MY", { timeZone: TIME_ZONE, hour: "numeric", minute: "2-digit" });
 const dayFmt = new Intl.DateTimeFormat("en-MY", { timeZone: TIME_ZONE, weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-// "Thu, 5 Nov 2026 · 7:00 pm – 9:00 pm"
+// "Thu, 5 Nov 2026 · 7:00 pm – 9:00 pm". An event from 00:00 to 23:59 is all-day: dates only
+// ("Thu, 29 Oct 2026 – Fri, 30 Oct 2026"), for events whose timetable isn't set.
 export function fmtEventWhen(start: Date, end?: Date | null): string {
+  const hm = (d: Date) => toKLInput(d).slice(11);
+  if (hm(start) === "00:00" && (!end || hm(end) === "23:59")) {
+    return !end || todayKL(end) === todayKL(start) ? dayFmt.format(start) : `${dayFmt.format(start)} – ${dayFmt.format(end)}`;
+  }
   const s = `${dayFmt.format(start)} · ${timeFmt.format(start)}`;
   if (!end) return s;
   return todayKL(end) === todayKL(start) ? `${s} – ${timeFmt.format(end)}` : `${s} – ${dayFmt.format(end)} ${timeFmt.format(end)}`;

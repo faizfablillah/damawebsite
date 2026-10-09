@@ -747,3 +747,57 @@ test("signing up from an event page returns to the event", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Data Governance Workshop" })).toBeVisible();
   await expect(page.getByText("Your price: RM 120.00")).toBeVisible();
 });
+
+test("partner events, members-only offers and draft news", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto("/admin/events/new");
+  await page.getByLabel("Title").fill("Partner Data Summit");
+  await page.getByLabel("Type").selectOption("Conference");
+  await page.getByLabel("Who can attend").selectOption("public");
+  await page.getByLabel("Short summary").fill("Two days of talks run by our partner, with a discount for DAMA members.");
+  await page.getByLabel("Full description").fill("More at https://partner.example/summit");
+  await page.getByLabel("Starts (Malaysia time)").fill(`${klDay(15)}T00:00`);
+  await page.getByLabel("Ends").fill(`${klDay(16)}T23:59`);
+  await page.getByLabel("Venue").fill("Partner Hotel, Kuala Lumpur");
+  await page.getByLabel("Organiser", { exact: true }).fill("Partner Events Co");
+  await page.getByLabel("Organiser's registration link").fill("https://partner.example/register");
+  await page.getByLabel("Member offer (public headline)").fill("DAMA members save 10% on registration");
+  await page.getByLabel("Member offer details (members only)").fill("Use promo code DAMATEST when booking.");
+  await page.getByLabel("Status").selectOption("published");
+  await page.getByRole("button", { name: "Create event" }).click();
+  await expect(page.getByText("Event created and published.")).toBeVisible();
+
+  // Visitors: register with the organiser, see the offer headline but not the code
+  await page.context().clearCookies();
+  await openEvent(page, "Partner Data Summit");
+  await expect(page.getByText("Partner event").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Register on the organiser's site" })).toHaveAttribute("href", "https://partner.example/register");
+  await expect(page.getByRole("link", { name: "https://partner.example/summit" })).toBeVisible();
+  await expect(page.getByText("DAMA members save 10% on registration")).toBeVisible();
+  await expect(page.getByText("DAMATEST")).toHaveCount(0);
+  await expect(page.getByText("to see how to claim it")).toBeVisible();
+  // All-day: dates only, no times
+  const when = await page.locator("dl.kv dd").first().innerText();
+  expect(when).not.toMatch(/am|pm/);
+  expect(when).toContain("–");
+
+  // Non-members with an account still don't see the code; members do
+  await login(page, "nora@example.com");
+  await openEvent(page, "Partner Data Summit");
+  await expect(page.getByText("This offer is for DAMA members.")).toBeVisible();
+  await expect(page.getByText("DAMATEST")).toHaveCount(0);
+  await login(page, STUDENT);
+  await openEvent(page, "Partner Data Summit");
+  await expect(page.getByText("Use promo code DAMATEST when booking.")).toBeVisible();
+  // Partner events can't be registered for on our site
+  await expect(page.getByRole("button", { name: /^Register/ })).toHaveCount(0);
+
+  // Draft news posts are hidden from the list and from visitors, previewable by admins
+  await page.context().clearCookies();
+  await page.goto("/news");
+  await expect(page.getByText("World Data Summit: APAC Edition 2026")).toHaveCount(0);
+  expect((await page.request.get("/news/world-data-summit-apac-2026")).status()).toBe(404);
+  await login(page, ADMIN);
+  await page.goto("/news/world-data-summit-apac-2026");
+  await expect(page.getByText(/Draft preview/)).toBeVisible();
+});

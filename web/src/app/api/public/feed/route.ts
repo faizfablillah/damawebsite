@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { eventImage, priceLabel } from "@/components/cards";
+import { eventImage, eventTag, priceLabel } from "@/components/cards";
 import { fmtEventWhen } from "@/lib/format";
 import { publishedEvents } from "@/lib/events";
 import { allNews } from "@/lib/news";
@@ -14,7 +14,7 @@ export async function GET() {
       url: `/events/${e.slug}`,
       when: fmtEventWhen(e.startsAt, e.endsAt),
       summary: e.summary,
-      tag: e.audience === "members" ? "Members only" : (e.category ?? "Event"),
+      tag: eventTag(e),
       price: priceLabel(e),
       image: eventImage(e),
     }));

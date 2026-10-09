@@ -36,7 +36,14 @@ export function EventForm({ e }: { e?: Event }) {
           className="full"
           hint="Agenda, speakers, who it's for. Leave a blank line between paragraphs."
         />
-        <Field name="startsAt" label="Starts (Malaysia time)" type="datetime-local" required defaultValue={toKLInput(e?.startsAt)} />
+        <Field
+          name="startsAt"
+          label="Starts (Malaysia time)"
+          type="datetime-local"
+          required
+          defaultValue={toKLInput(e?.startsAt)}
+          hint="For an all-day event (no times shown), start at 00:00 and end at 23:59."
+        />
         <Field name="endsAt" label="Ends" type="datetime-local" defaultValue={toKLInput(e?.endsAt)} />
         <Field name="venue" label="Venue" defaultValue={e?.venue ?? ""} hint="e.g. Menara X, Kuala Lumpur. Leave empty for online-only events." />
         <Field
@@ -67,6 +74,26 @@ export function EventForm({ e }: { e?: Event }) {
           defaultValue={e?.materials ?? ""}
           className="full"
           hint="Links to slides or recordings, usually added after the event. Shown to members and confirmed attendees only."
+        />
+        <fieldset className="full" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "14px 16px" }}>
+          <legend style={{ padding: "0 6px", fontWeight: 600 }}>Partner event (organised by someone else)</legend>
+          <div className="form-grid">
+            <Field name="organiser" label="Organiser" defaultValue={e?.organiser ?? ""} hint="e.g. World Data Summit. Shown on the event page." />
+            <Field
+              name="externalUrl"
+              label="Organiser's registration link"
+              defaultValue={e?.externalUrl ?? ""}
+              hint="If set, people register on this link instead of here (prices and places above are ignored)."
+            />
+          </div>
+        </fieldset>
+        <Field name="memberOffer" label="Member offer (public headline)" defaultValue={e?.memberOffer ?? ""} className="full" hint="e.g. DAMA members save 10% on registration. Everyone sees this." />
+        <TextArea
+          name="memberOfferDetails"
+          label="Member offer details (members only)"
+          defaultValue={e?.memberOfferDetails ?? ""}
+          className="full"
+          hint="e.g. the promo code and how to use it. Only logged-in members (and admins) see this."
         />
         <Select
           name="status"

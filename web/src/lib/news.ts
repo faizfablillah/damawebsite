@@ -18,6 +18,7 @@ export type NewsPost = {
   summary: string;
   images: NewsImage[];
   membersOnly: boolean;
+  draft: boolean; // drafts are hidden from lists; admins can preview them at their address
   html: string;
 };
 
@@ -56,11 +57,12 @@ function parse(file: string): NewsPost {
     summary: meta.summary ?? "",
     images,
     membersOnly: meta.membersOnly === "true",
+    draft: meta.draft === "true",
     html: marked.parse(m[2].trim(), { async: false }),
   };
 }
 
-export const allNews = cache((): NewsPost[] => {
+const everything = cache((): NewsPost[] => {
   if (!fs.existsSync(DIR)) return [];
   return fs
     .readdirSync(DIR)
@@ -69,7 +71,10 @@ export const allNews = cache((): NewsPost[] => {
     .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
 });
 
-export const newsBySlug = (slug: string) => allNews().find((p) => p.slug === slug) ?? null;
+// Published posts, newest first
+export const allNews = () => everything().filter((p) => !p.draft);
+// Any post including drafts (the page decides who may see a draft)
+export const newsBySlug = (slug: string) => everything().find((p) => p.slug === slug) ?? null;
 
 // Old /events#anchor links from the earlier static Events page → their news post
 export const OLD_EVENT_ANCHORS: Record<string, string> = {

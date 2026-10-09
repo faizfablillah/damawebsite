@@ -331,6 +331,12 @@ export const events = pgTable(
     registrationClosesAt: timestamp("registration_closes_at", { withTimezone: true }),
     imageKey: text("image_key"),
     materials: text("materials"), // members-only: slides, recordings (links or notes)
+    // Partner events: run by another organiser, who handles registration on their own site
+    organiser: text("organiser"),
+    externalUrl: text("external_url"),
+    // Member offer: the headline is public ("DAMA members save 10%"), the details (e.g. a promo code) members-only
+    memberOffer: text("member_offer"),
+    memberOfferDetails: text("member_offer_details"),
     status: text("status").$type<EventStatus>().notNull().default("draft"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),

@@ -12,25 +12,24 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/news/[slug]">) {
   const p = newsBySlug((await params).slug);
-  if (!p) return { title: "News" };
+  if (!p || p.draft) return { title: "News" };
   return { title: p.title, description: p.summary, openGraph: { title: p.title, description: p.summary, images: p.images[0] ? [p.images[0].src] : [] } };
 }
 
 export default async function NewsPostPage({ params }: PageProps<"/news/[slug]">) {
   const p = newsBySlug((await params).slug);
   if (!p) notFound();
+  const viewer = p.draft || p.membersOnly ? await getCurrentUser() : null;
+  if (p.draft && !can(viewer?.role, "backoffice")) notFound();
   // Members-only posts (e.g. member offers) show their body to members and admins only
   let canRead = true;
-  if (p.membersOnly) {
-    const user = await getCurrentUser();
-    canRead = !!user && (can(user.role, "backoffice") || (await memberStatus(user)).member);
-  }
+  if (p.membersOnly) canRead = !!viewer && (can(viewer.role, "backoffice") || (await memberStatus(viewer)).member);
   return (
     <>
       <section className="app-hero">
         <div className="waves waves--right" aria-hidden="true" />
         <div className="container">
-          <p className="eyebrow">{p.membersOnly ? `${p.tag} · Members only` : p.tag}</p>
+          <p className="eyebrow">{p.draft ? `Draft preview · ${p.tag}` : p.membersOnly ? `${p.tag} · Members only` : p.tag}</p>
           <h1>{p.title}</h1>
           <p>{p.summary}</p>
         </div>

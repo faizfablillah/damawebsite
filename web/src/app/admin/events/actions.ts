@@ -46,6 +46,10 @@ const eventSchema = z.object({
   memberPrice: z.string().trim().optional(),
   nonMemberPrice: z.string().trim().optional(),
   materials: z.string().trim().max(5000).optional(),
+  organiser: z.string().trim().max(160).optional(),
+  externalUrl: optionalUrl.optional(),
+  memberOffer: z.string().trim().max(160).optional(),
+  memberOfferDetails: z.string().trim().max(2000).optional(),
   status: z.enum(["draft", "published", "cancelled"]),
 });
 
@@ -72,6 +76,8 @@ export async function saveEventAction(eventId: string | null, _: FormState, data
     if (nonMemberPrice === null) return fail("nonMemberPrice", "Enter an amount in RM (0 for free).");
   }
   if (d.status === "published" && !d.venue && !d.onlineUrl) return fail("venue", "Add a venue or an online link before publishing.");
+  if (d.externalUrl && !d.organiser) return fail("organiser", "Name the organiser of this partner event.");
+  if (d.memberOfferDetails && !d.memberOffer) return fail("memberOffer", "Add a short public headline for the member offer.");
 
   try {
     const image = await validateUpload(data.get("image"), "the cover image", false);
@@ -92,6 +98,10 @@ export async function saveEventAction(eventId: string | null, _: FormState, data
       memberPrice,
       nonMemberPrice,
       materials: d.materials || null,
+      organiser: d.organiser || null,
+      externalUrl: d.externalUrl || null,
+      memberOffer: d.memberOffer || null,
+      memberOfferDetails: d.memberOfferDetails || null,
       status: d.status,
       updatedAt: new Date(),
       ...(imageKey ? { imageKey } : {}),

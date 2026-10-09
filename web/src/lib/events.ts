@@ -61,6 +61,7 @@ export const hasEnded = (e: Event) => (e.endsAt ?? new Date(e.startsAt.getTime()
 
 export function registrationClosed(e: Event) {
   if (e.status !== "published") return "This event is not open for registration.";
+  if (e.externalUrl) return "Registration for this partner event is on the organiser's website.";
   const closes = e.registrationClosesAt ?? e.startsAt;
   if (closes.getTime() <= Date.now()) return "Registration for this event has closed.";
   return null;

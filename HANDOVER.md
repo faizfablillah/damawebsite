@@ -172,7 +172,7 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 - [ ] Board decisions proposed in Part 5 of the deck: continue in-house, ask for the dama.org.my transfer, build no-code page editing before launch, name a second technical volunteer, move accounts to DAMA ownership.
 - [x] **Entra app restricted** (9 Oct 2026): Exchange Online application access policy — the "DAMA website" app may only send as members of the hidden mail-enabled security group `dama-website-senders` (just faiz@keppstone.onmicrosoft.com). Tested: Granted for that mailbox, Denied for the other 2 mailboxes; production email still sends. When the sender changes, add the new mailbox to that group (or switch to SMTP and delete the app).
 - [ ] Switch email to info.damamalaysia@gmail.com once accessible (remove `MS_*`, add `SMTP_*` in Vercel).
-- [ ] Delete the Supabase CLI access token after setup (Supabase → Account → Access Tokens) and `web/.env.supabase-cli`.
+- [x] Supabase CLI access token deleted and `web/.env.supabase-cli` removed (9 Oct 2026). Create a new token only when the CLI is needed again, and delete it afterwards.
 - [ ] Before launch: wipe test data with `scripts/launch-reset.ts` (dry run on production checked 9 Oct: 3 test memberships, 2 test accounts); move Vercel/Supabase to DAMA-owned accounts (or consider Microsoft for Nonprofits — DAMA-owned tenant, possible Azure credits).
 - [ ] Upgrade Vercel to **Pro** before real members pay; later move Vercel/Supabase to DAMA-owned accounts.
 - [ ] Replace placeholder **testimonials**; review **event write-ups**.

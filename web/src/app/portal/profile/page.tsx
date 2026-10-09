@@ -25,7 +25,7 @@ export default async function ProfilePage() {
                 <div className="field">
                   <span className="label">Email address</span>
                   <input type="email" value={user.email} disabled className="input" />
-                  <span className="hint">To change your email, contact info.damamalaysia@gmail.com.</span>
+                  <span className="hint">To change your email, contact info@dama.org.my.</span>
                 </div>
                 <Field name="phone" label="Contact number" type="tel" required defaultValue={user.phone} />
                 <Field name="jobTitle" label="Job title" defaultValue={user.jobTitle ?? ""} />

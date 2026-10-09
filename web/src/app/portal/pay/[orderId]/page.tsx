@@ -64,7 +64,7 @@ export default async function PayPage({ params, searchParams }: PageProps<"/port
               </div>
               <div className="row">
                 <span>Account number</span>
-                <strong>{settings.bank.accountNumber || "Please contact info.damamalaysia@gmail.com"}</strong>
+                <strong>{settings.bank.accountNumber || "Please contact info@dama.org.my"}</strong>
               </div>
               <div className="row">
                 <span>Payment reference</span>

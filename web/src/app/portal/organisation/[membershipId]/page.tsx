@@ -131,7 +131,7 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
                   </dd>
                 </dl>
                 <p className="muted-sm" style={{ marginTop: 12 }}>
-                  To change organisation details, email info.damamalaysia@gmail.com.
+                  To change organisation details, email info@dama.org.my.
                 </p>
               </section>
             </aside>

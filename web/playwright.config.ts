@@ -39,6 +39,7 @@ export default defineConfig({
       MS_CLIENT_SECRET: "",
       MS_SENDER: "",
       DATABASE_URL: "",
+      NEWS_EXTRA_DIR: "tests/fixtures/news",
       S3_BUCKET: "",
     },
   },

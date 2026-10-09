@@ -333,7 +333,7 @@ export default async function PortalPage({ searchParams }: PageProps<"/portal">)
               <section className="panel">
                 <h2>Need help?</h2>
                 <p className="muted-sm">
-                  Email <a href="mailto:info.damamalaysia@gmail.com">info.damamalaysia@gmail.com</a> and include your Member ID if you have one.
+                  Email <a href="mailto:info@dama.org.my">info@dama.org.my</a> and include your Member ID if you have one.
                 </p>
               </section>
             </aside>

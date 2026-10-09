@@ -23,7 +23,7 @@ test("public site pages and sign-up entry points work", async ({ page }) => {
   await page.goto("/privacy");
   await expect(page.getByRole("heading", { name: "Privacy Policy" })).toBeVisible();
   await page.goto("/contact");
-  await expect(page.getByText("info.damamalaysia@gmail.com").first()).toBeVisible();
+  await expect(page.getByText("info@dama.org.my").first()).toBeVisible();
 });
 
 test("admin account is created from SUPER_ADMIN_EMAILS", async ({ page }) => {
@@ -795,9 +795,9 @@ test("partner events, members-only offers and draft news", async ({ page }) => {
   // Draft news posts are hidden from the list and from visitors, previewable by admins
   await page.context().clearCookies();
   await page.goto("/news");
-  await expect(page.getByText("World Data Summit: APAC Edition 2026")).toHaveCount(0);
-  expect((await page.request.get("/news/world-data-summit-apac-2026")).status()).toBe(404);
+  await expect(page.getByText("Test Draft Announcement")).toHaveCount(0);
+  expect((await page.request.get("/news/test-draft-announcement")).status()).toBe(404);
   await login(page, ADMIN);
-  await page.goto("/news/world-data-summit-apac-2026");
+  await page.goto("/news/test-draft-announcement");
   await expect(page.getByText(/Draft preview/)).toBeVisible();
 });

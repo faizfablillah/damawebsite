@@ -5,7 +5,7 @@ export const ORG = {
   registeredName: "PERSATUAN PENGURUSAN DATA KUALA LUMPUR & SELANGOR (DAMA)",
   shortName: "DAMA Kuala Lumpur & Selangor",
   rosNo: "PPM-016-14-27102023",
-  email: "info.damamalaysia@gmail.com",
+  email: "info@dama.org.my",
   linkedin: "https://www.linkedin.com/company/dama-malaysia-kuala-lumpur/",
 };
 

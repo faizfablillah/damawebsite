@@ -23,10 +23,12 @@ export type NewsPost = {
 };
 
 const DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), "content", "news");
+// Tests add their own posts from a second folder (NEWS_EXTRA_DIR)
+const DIRS = [DIR, ...(process.env.NEWS_EXTRA_DIR ? [path.resolve(/*turbopackIgnore: true*/ process.env.NEWS_EXTRA_DIR)] : [])];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-function parse(file: string): NewsPost {
-  const raw = fs.readFileSync(path.join(DIR, file), "utf8").replace(/\r\n/g, "\n");
+function parse(dir: string, file: string): NewsPost {
+  const raw = fs.readFileSync(path.join(dir, file), "utf8").replace(/\r\n/g, "\n");
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!m) throw new Error(`News post ${file} has no front matter`);
   const meta: Record<string, string> = {};
@@ -63,11 +65,13 @@ function parse(file: string): NewsPost {
 }
 
 const everything = cache((): NewsPost[] => {
-  if (!fs.existsSync(DIR)) return [];
-  return fs
-    .readdirSync(DIR)
-    .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.md$/.test(f))
-    .map(parse)
+  return DIRS.filter((dir) => fs.existsSync(dir))
+    .flatMap((dir) =>
+      fs
+        .readdirSync(dir)
+        .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.md$/.test(f))
+        .map((f) => parse(dir, f)),
+    )
     .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
 });
 

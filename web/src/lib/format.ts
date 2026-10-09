@@ -73,3 +73,27 @@ export function parseRinggit(input: string): number | null {
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.round(n * 100);
 }
+
+// Event times are entered and shown in Malaysia time (UTC+8, no daylight saving)
+const timeFmt = new Intl.DateTimeFormat("en-MY", { timeZone: TIME_ZONE, hour: "numeric", minute: "2-digit" });
+const dayFmt = new Intl.DateTimeFormat("en-MY", { timeZone: TIME_ZONE, weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+// "Thu, 5 Nov 2026 · 7:00 pm – 9:00 pm"
+export function fmtEventWhen(start: Date, end?: Date | null): string {
+  const s = `${dayFmt.format(start)} · ${timeFmt.format(start)}`;
+  if (!end) return s;
+  return todayKL(end) === todayKL(start) ? `${s} – ${timeFmt.format(end)}` : `${s} – ${dayFmt.format(end)} ${timeFmt.format(end)}`;
+}
+
+// Date → "2026-11-05T19:00" (value for <input type="datetime-local">, Malaysia time)
+export function toKLInput(date: Date | null | undefined): string {
+  if (!date) return "";
+  return new Date(date.getTime() + 8 * 3_600_000).toISOString().slice(0, 16);
+}
+
+// "2026-11-05T19:00" (Malaysia time) → Date
+export function fromKLInput(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  const d = new Date(`${value}:00+08:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}

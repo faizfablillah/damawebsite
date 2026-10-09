@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AppHero, EligibilityBadge, MembershipBadge, Notice, PaymentBadge } from "@/components/ui";
 import { requireVerifiedUser } from "@/lib/auth";
 import { CATEGORY_LABEL, TIERS } from "@/lib/config";
-import { daysBetween, fmtDate, rm, todayKL } from "@/lib/format";
+import { daysBetween, fmtDate, fmtEventWhen, rm, todayKL } from "@/lib/format";
+import { myEventRegistrations } from "@/lib/events";
 import { membershipsForUser, openOrder, type MembershipBundle } from "@/lib/queries";
 import { orderBalance, seatCode } from "@/lib/membership";
 import { renewAction } from "./actions";
@@ -226,7 +227,7 @@ function CorporateMembership({ b }: { b: MembershipBundle }) {
 export default async function PortalPage({ searchParams }: PageProps<"/portal">) {
   const user = await requireVerifiedUser("/portal");
   const sp = await searchParams;
-  const { bundles, heldSeats } = await membershipsForUser(user);
+  const [{ bundles, heldSeats }, myEvents] = await Promise.all([membershipsForUser(user), myEventRegistrations(user.id)]);
   const personal = bundles.filter((b) => b.membership.category !== "C" && !["cancelled"].includes(b.membership.status));
   const corporate = bundles.filter((b) => b.membership.category === "C" && b.membership.status !== "cancelled");
   const hasPersonal = personal.some((b) => b.membership.status !== "rejected");
@@ -285,6 +286,27 @@ export default async function PortalPage({ searchParams }: PageProps<"/portal">)
               )}
             </div>
             <aside>
+              <section className="panel">
+                <h2>My events</h2>
+                {myEvents.length ? (
+                  <ul className="plain-list">
+                    {myEvents.map(({ r, e }) => (
+                      <li key={r.id} style={{ marginBottom: 12 }}>
+                        <Link href={r.status === "confirmed" ? `/events/${e.slug}` : `/portal/events/${r.id}`}>
+                          <strong>{e.title}</strong>
+                        </Link>
+                        <div className="muted-sm">{fmtEventWhen(e.startsAt, e.endsAt)}</div>
+                        <span className={`badge ${r.status === "confirmed" ? "badge--green" : "badge--amber"}`}>
+                          {r.status === "confirmed" ? "Confirmed" : r.status === "payment_review" ? "Payment under review" : `Awaiting payment · ${rm(r.amount)}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted-sm">You haven&apos;t registered for any upcoming events.</p>
+                )}
+                <Link href="/events">See upcoming events</Link>
+              </section>
               <section className="panel">
                 <h2>Your details</h2>
                 <dl className="kv">

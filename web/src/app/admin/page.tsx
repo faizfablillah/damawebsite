@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { and, count, desc, eq, gte, inArray, lte, sql, sum } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { adminHome, can } from "@/lib/config";
 import { Notice } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/form";
 import { addDays, fmtDateTime, rm, todayKL } from "@/lib/format";
@@ -9,7 +11,8 @@ import { runDailyAction } from "./actions";
 
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
   // Each page checks access itself: the layout check alone does not protect the page payload
-  await requireAdmin("view");
+  const me = await requireAdmin("backoffice");
+  if (!can(me.role, "view")) redirect(adminHome(me.role));
   const sp = await searchParams;
   const db = await getDb();
   const today = todayKL();

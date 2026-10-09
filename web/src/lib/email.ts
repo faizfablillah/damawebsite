@@ -37,15 +37,69 @@ function mail(title: string, paragraphs: string[], cta?: { label: string; url: s
   return { subject: title, html, text: `${title}\n\n${textOf(body)}${cta ? `\n\n${cta.label}: ${cta.url}` : ""}\n\n${ORG.shortName}` };
 }
 
+type EventInfo = { title: string; when: string; venue: string | null; slug: string };
+const eventLines = (e: EventInfo) => `<strong>${esc(e.title)}</strong><br>${esc(e.when)}${e.venue ? `<br>${esc(e.venue)}` : ""}`;
+const eventUrl = (e: EventInfo) => `${APP_URL}/events/${e.slug}`;
+// Plain text typed by an admin → escaped paragraphs (blank line = new paragraph)
+const paragraphs = (text: string) => text.trim().split(/\r?\n\s*\r?\n/).map((para) => esc(para).replace(/\r?\n/g, "<br>"));
+
 export const templates = {
+  eventConfirmed: (name: string, e: EventInfo, onlineUrl: string | null) =>
+    mail(
+      "You're registered",
+      [
+        `Hi ${esc(name)},`,
+        "Your place is confirmed for:",
+        eventLines(e),
+        ...(onlineUrl ? [`Join online: <a href="${esc(onlineUrl)}">${esc(onlineUrl)}</a>`] : []),
+        "A calendar invitation is attached. We'll also send a reminder the day before.",
+      ],
+      { label: "View event", url: eventUrl(e) },
+    ),
+  eventPaymentNeeded: (name: string, e: EventInfo, amount: string, reference: string, payUrl: string) =>
+    mail(
+      "Complete your event registration",
+      [
+        `Hi ${esc(name)},`,
+        "We've reserved your place for:",
+        eventLines(e),
+        `Please transfer <strong>${esc(amount)}</strong> using the reference <strong>${esc(reference)}</strong>, then upload your bank receipt. Your place is confirmed once we've verified the payment.`,
+      ],
+      { label: "Pay and upload receipt", url: payUrl },
+    ),
+  eventPaymentRejected: (name: string, e: EventInfo, reason: string, payUrl: string) =>
+    mail(
+      "We couldn't verify your event payment",
+      [`Hi ${esc(name)},`, `We couldn't verify your payment for <strong>${esc(e.title)}</strong>.`, `Reason: ${esc(reason)}`, "Please upload a new receipt, or reply to this email if you think this is a mistake."],
+      { label: "Upload a new receipt", url: payUrl },
+    ),
+  eventReminder: (name: string, e: EventInfo, onlineUrl: string | null) =>
+    mail(
+      `Reminder: ${e.title} is tomorrow`,
+      [`Hi ${esc(name)},`, "A quick reminder about tomorrow's event:", eventLines(e), ...(onlineUrl ? [`Join online: <a href="${esc(onlineUrl)}">${esc(onlineUrl)}</a>`] : []), "See you there!"],
+      { label: "View event", url: eventUrl(e) },
+    ),
+  eventCancelled: (name: string, e: EventInfo, note: string) =>
+    mail("Your event registration has been cancelled", [`Hi ${esc(name)},`, `Your registration for <strong>${esc(e.title)}</strong> (${esc(e.when)}) has been cancelled.`, ...(note ? [esc(note)] : []), "If you paid for this event, we'll contact you about a refund."]),
+  eventMessage: (subject: string, message: string, e: EventInfo) =>
+    mail(subject, [...paragraphs(message), `<span style="color:#6b7280;font-size:13px">You're receiving this because you registered for ${esc(e.title)}.</span>`], {
+      label: "View event",
+      url: eventUrl(e),
+    }),
+  announcement: (subject: string, message: string, footer: string) =>
+    mail(subject, [...paragraphs(message), `<span style="color:#6b7280;font-size:13px">${esc(footer)}</span>`]),
   adminAlert: (problems: string[]) =>
     mail(
       "DAMA website: something needs attention",
       ["The daily check of the membership system found:", problems.map((x) => `• ${esc(x)}`).join("<br>"), "Members can still use the site unless it says otherwise. Check Admin → Email log, or the Vercel logs, for details."],
       { label: "Open the admin", url: `${APP_URL}/admin` },
     ),
-  verifyEmail: (name: string, token: string) =>
-    mail("Confirm your email address", [`Hi ${esc(name)},`, "Thanks for signing up with DAMA Kuala Lumpur &amp; Selangor. Please confirm your email address to continue your membership application.", "This link expires in 72 hours."], { label: "Confirm email", url: `${APP_URL}/verify-email?token=${token}` }),
+  // next: a page on this site to continue to afterwards (e.g. the event they were registering for)
+  verifyEmail: (name: string, token: string, next?: string | null) =>
+    mail("Confirm your email address", [`Hi ${esc(name)},`, "Thanks for signing up with DAMA Kuala Lumpur &amp; Selangor. Please confirm your email address to continue.", "This link expires in 72 hours."], {
+      label: "Confirm email",
+      url: `${APP_URL}/verify-email?token=${token}${next ? `&next=${encodeURIComponent(next)}` : ""}`,
+    }),
   resetPassword: (name: string, token: string) =>
     mail("Reset your password", [`Hi ${esc(name)},`, "We received a request to reset your password. This link expires in 2 hours. If you didn't ask for this, you can ignore this email."], { label: "Choose a new password", url: `${APP_URL}/reset-password?token=${token}` }),
   applicationReceived: (name: string, tierLabel: string, amount: string, reference: string) =>

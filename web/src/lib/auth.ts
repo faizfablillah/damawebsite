@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { User } from "@/db/schema";
-import { can, type Permission, type Role } from "./config";
+import { adminHome, can, type Permission, type Role } from "./config";
 
 const COOKIE = "dama_session";
 const SESSION_DAYS = 30;
@@ -115,7 +115,7 @@ export async function requireAdmin(perm: Permission = "view"): Promise<User & { 
   const user = await requireUser("/admin");
   if (!user.emailVerifiedAt) redirect("/check-email");
   if (!can(user.role, perm)) {
-    if (can(user.role, "view")) redirect("/admin?denied=1");
+    if (can(user.role, "backoffice")) redirect(`${adminHome(user.role)}?denied=1`);
     redirect("/portal");
   }
   return user;

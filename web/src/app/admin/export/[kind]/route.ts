@@ -1,7 +1,3 @@
-import Papa from "papaparse";
-
-// Cells starting with = + - @ get a leading quote so a member's name can't run as a formula in Excel
-const toCsv = (rows: object[]) => Papa.unparse(rows, { escapeFormulae: true });
 import { asc, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -10,17 +6,7 @@ import { money, todayKL } from "@/lib/format";
 import { IMPORT_TEMPLATE } from "@/lib/import";
 import { seatCode } from "@/lib/membership";
 import { audit } from "@/lib/audit";
-
-function csv(name: string, body: string) {
-  // BOM so Excel opens UTF-8 correctly
-  return new Response("﻿" + body, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${name}"`,
-      "Cache-Control": "private, no-store",
-    },
-  });
-}
+import { csvResponse as csv, toCsv } from "@/lib/csv";
 
 export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]">) {
   const { kind } = await ctx.params;

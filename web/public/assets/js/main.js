@@ -80,6 +80,39 @@
     reveals.forEach(function (el) { el.classList.add("is-visible"); });
   }
 
+  // Homepage: upcoming events from the membership system (section stays hidden if there are none)
+  var feed = document.querySelector("[data-feed]");
+  var feedGrid = feed && feed.querySelector("[data-feed-events]");
+  if (feedGrid && window.fetch) {
+    fetch("/api/public/feed")
+      .then(function (r) { return r.ok ? r.json() : { events: [] }; })
+      .then(function (data) {
+        var events = (data && data.events) || [];
+        if (!events.length) return;
+        events.forEach(function (ev) {
+          var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
+          var card = el("a", "event-card");
+          card.href = ev.url;
+          var imgBox = el("div", "event-card__img");
+          var img = el("img");
+          img.src = ev.image; img.alt = ""; img.loading = "lazy";
+          imgBox.appendChild(img);
+          imgBox.appendChild(el("span", "tag", ev.tag));
+          var body = el("div", "event-card__body");
+          body.appendChild(el("div", "event-card__date", ev.when));
+          body.appendChild(el("h3", null, ev.title));
+          body.appendChild(el("p", null, ev.summary));
+          body.appendChild(el("p", "muted", ev.price));
+          body.appendChild(el("span", "link-arrow", "Details & registration"));
+          card.appendChild(imgBox);
+          card.appendChild(body);
+          feedGrid.appendChild(card);
+        });
+        feed.hidden = false;
+      })
+      .catch(function () {});
+  }
+
   // Footer year
   document.querySelectorAll("[data-year]").forEach(function (el) { el.textContent = new Date().getFullYear(); });
 })();

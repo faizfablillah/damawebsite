@@ -11,8 +11,8 @@ This file is the single place to pick the project up again: what exists, why it 
 | Piece | Where | Status |
 |---|---|---|
 | Static website v1 (6 pages) | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Live** on GitHub Pages (contact email fixed to info.damamalaysia@gmail.com). |
-| Website + membership system | `web/` (Next.js app) | **Live for board testing** at https://dama-malaysia.vercel.app (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
-| Automated tests | `web/tests/` | 17 end-to-end tests (incl. 4 security tests and backups/alerts), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
+| Website + membership system | `web/` (Next.js app) | **Live for board testing** at **https://dama.org.my** (since 9 Oct 2026; `www.dama.org.my` and the old https://dama-malaysia.vercel.app redirect there) (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
+| Automated tests | `web/tests/` | 24 end-to-end tests (membership, security, backups/alerts, events, news, announcements), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 | Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 30 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, Part 5 (added 6 Oct, **board only**: comparison with the earlier vendor quotation; details in `PRIVATE-CONTEXT.md`), technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
 
@@ -66,7 +66,10 @@ PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
 
 ## 4. The public website
 
-- Pages: `/` (Home), `/about`, `/leadership`, `/events`, `/membership`, `/contact`, `/privacy`. Served from `web/public/*.html` with clean URLs (rewrites in `web/next.config.ts`).
+- Pages: `/` (Home), `/about`, `/leadership`, `/membership`, `/contact`, `/privacy` are static HTML in `web/public/*.html` (clean URLs via `web/next.config.ts`). `/events` and `/news` are app pages (below). The homepage's "Join us at our next events" strip is filled from `/api/public/feed` by `assets/js/main.js` and stays hidden when nothing is upcoming.
+- **Events** (`/events`, `/events/<slug>`; added 9 Oct 2026): created in **Admin → Events** by super admins or the **Events admin** role (Programs team). Each event is *everyone* or *members only*, with a member price and a non-member price (0 = free), optional capacity and closing time, a cover image, an online link (shown only to confirmed attendees) and members-only "slides & recordings". Registration needs a free account (PDPA consent comes with it). Free → confirmed at once (email + calendar invite). Paid → bank transfer + receipt upload (`/portal/events/<id>`), **Finance verifies in Admin → Payments → Event payments**, then the attendee gets the confirmation with an official receipt `MY/EVT/YYYY/NNNN`. Members = active/grace personal members, corporate contacts and corporate seat holders. The daily job emails confirmed attendees a reminder the day before. Event admins can mark attendance, export attendees (CSV), cancel registrations and email attendees.
+- **News** (`/news`, `/news/<slug>`): Markdown files in `web/content/news/` (format in its README) — ask the maintainer to add posts; `membersOnly: true` hides the body from non-members (member offers). The five earlier write-ups from the old static Events page are now news posts; old `/events#…` links forward to them.
+- **Announce** (Admin → Announce, super + membership admins): email all active members, or everyone with an account who consented. Free email plans allow ~100 emails/day.
 - Menu has **Member Login** and **Join Us**; Membership page "Join now" buttons go to `/join?tier=student|individual|corporate`.
 - Contact email everywhere: **info.damamalaysia@gmail.com** (the board's real inbox; `dama.org.my` is not live).
 - Content from the Infopack: vision/mission, goals, journey (Dec 2022 → May 2025 launch), DAMA International facts (founded 1980, 71 chapters / 43 countries as of July 2026), Board of Directors (12, headshots from the Infopack), events (Launch 13 May 2025 at PwC AI Leadership Conference; MoU with Universiti Malaya 21 Aug 2025; MoU AFED Digital Apr 2026; Data Launchpad Series #1 Jul 2026; MoU MMU Aug 2026), membership pricing and corporate tiers, key data areas, upcoming activities.
@@ -101,7 +104,7 @@ PRIVATE-CONTEXT.md          Local only (git-ignored) — sensitive context
 
 **Admin (`/admin`):** Dashboard (sign-ups today by tier, payments to verify, student checks, corporate leads, seat requests, renewals due, active totals, recent activity) · Payments (verify with actual amount → part payment if less; reject with reason; record offline payment; discount) · Students / Individuals / All members (search, filters, full record) · Corporate (pipeline: New lead → PIC contacted → Invoice sent → Pending payment → Payment review → Pending user list → Active; assign PIC, notes, upload proposals/invoices, manage seats, approve swaps) · Renewals · Email log · Export (members, payments, seats as CSV) · Import · Settings (prices, bank details, grace, reminders) · Admins (roles) · Audit trail.
 
-**Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export), Finance (payments, receipts, export). First super admin = an account whose email is in `SUPER_ADMIN_EMAILS`, granted only after the email is confirmed and only while no super admin exists (so production ignores it now; add further admins in Admin → Admins). Super admins can also **disable** an account there (signs it out everywhere, blocks login and password reset).
+**Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export, announcements), Finance (payments incl. event payments, receipts, export), **Events admin** (events and attendees only — no member records or payments). First super admin = an account whose email is in `SUPER_ADMIN_EMAILS`, granted only after the email is confirmed and only while no super admin exists (so production ignores it now; add further admins in Admin → Admins). Super admins can also **disable** an account there (signs it out everywhere, blocks login and password reset).
 
 ---
 
@@ -138,7 +141,8 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 
 | Piece | Where |
 |---|---|
-| Site | https://dama-malaysia.vercel.app |
+| Site | **https://dama.org.my** (`APP_URL`; `CANONICAL_HOST=dama.org.my` makes `www` and `dama-malaysia.vercel.app` redirect, except `/api/*`) |
+| Domain | `dama.org.my` registered at **YeahHost** (owner: Faiz's YeahHost account); nameservers `ns1/ns2.vercel-dns.com`, so **DNS is managed in Vercel** (Vercel → Domains, or `npx vercel dns`). Old static site on GitHub Pages now forwards to dama.org.my |
 | Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
 | Database + files | Supabase project `dama-malaysia` (Singapore, ref `zzwgvnxywxclxjfyrjok`), **session pooler port 5432** (switched from the transaction pooler 6543 on 9 Oct 2026 — see Gotchas), private bucket `dama-files` (S3 access key "vercel") |
 | Email | Microsoft Graph, Entra app **"DAMA website"** in the keppstone tenant (Mail.Send application permission, admin-consented; client secret valid to Oct 2028). ~100 external recipients/day limit for onmicrosoft.com senders; mail may land in Junk |

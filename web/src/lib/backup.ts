@@ -31,6 +31,9 @@ export const BACKUP_TABLES = [
   "email_log",
   "renewal_reminders",
   "audit_log",
+  "events",
+  "event_registrations",
+  "event_payments",
 ];
 
 // A table added to the schema but not to the list above would silently be missing from backups

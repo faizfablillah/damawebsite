@@ -22,7 +22,7 @@ One Next.js app that serves:
 - Renewal reminders are emailed 30, 14 and 7 days before expiry, at the start of grace and on expiry (daily job).
 - Prices, early-bird vs standard individual pricing, bank details, grace days and reminder days are edited in **Admin → Settings**.
 
-Admin roles: **Super admin** (everything), **Membership admin** (approvals, members, corporate, seats), **Finance** (payments, receipts, exports). The first super admin is whoever signs up and confirms an email listed in `SUPER_ADMIN_EMAILS` (only while no super admin exists; after that, manage roles in Admin → Admins).
+Admin roles: **Super admin** (everything), **Membership admin** (approvals, members, corporate, seats, announcements), **Finance** (payments incl. event payments, receipts, exports), **Events admin** (events and attendees only). The first super admin is whoever signs up and confirms an email listed in `SUPER_ADMIN_EMAILS` (only while no super admin exists; after that, manage roles in Admin → Admins).
 
 ## Run it on this computer
 
@@ -77,6 +77,10 @@ src/lib/membership.ts    Applications, payments, part payments, activation, Memb
 src/lib/receipt-pdf.ts   Official receipt PDF
 src/lib/email.ts         Email templates and sending (SMTP or local outbox)
 src/lib/import.ts        CSV import of existing members
+src/lib/events.ts        Events: registration, member pricing, event payments + receipts, reminders
+src/lib/news.ts          News posts from content/news/*.md
+src/lib/announce.ts      Announcement emails to members
+src/lib/backup.ts        Nightly database backup (see scripts/ for restore and launch reset)
 src/db/schema.ts         Database tables (migrations in drizzle/)
 src/app/(auth)/          Sign-up, login, verification, password reset
 src/app/portal/          Member portal

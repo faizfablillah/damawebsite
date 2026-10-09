@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/auth";
 import { can, CATEGORY_LABEL } from "@/lib/config";
 import { fmtDate, fmtDateTime, money, rm } from "@/lib/format";
 import { rejectPaymentAction, verifyPaymentAction } from "../actions";
+import { rejectEventPaymentAction, verifyEventPaymentAction } from "../events/actions";
 
 const TABS: { key: PaymentStatus; label: string }[] = [
   { key: "submitted", label: "To verify" },
@@ -32,6 +33,14 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
     .orderBy(status === "submitted" ? schema.payments.createdAt : desc(schema.payments.createdAt))
     .limit(300);
   const canPay = can(admin.role, "payments");
+  const eventRows = await db
+    .select({ p: schema.eventPayments, r: schema.eventRegistrations, e: schema.events })
+    .from(schema.eventPayments)
+    .innerJoin(schema.eventRegistrations, eq(schema.eventPayments.registrationId, schema.eventRegistrations.id))
+    .innerJoin(schema.events, eq(schema.eventRegistrations.eventId, schema.events.id))
+    .where(eq(schema.eventPayments.status, status))
+    .orderBy(status === "submitted" ? schema.eventPayments.createdAt : desc(schema.eventPayments.createdAt))
+    .limit(300);
 
   return (
     <>
@@ -124,6 +133,83 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
           </table>
         ) : (
           <Empty>{status === "submitted" ? "No payments waiting for verification." : "Nothing here yet."}</Empty>
+        )}
+      </div>
+
+      <h3 style={{ marginTop: 32 }}>Event payments</h3>
+      <div className="table-scroll">
+        {eventRows.length ? (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Attendee</th>
+                <th>Event</th>
+                <th className="num">Amount</th>
+                <th>Bank ref. / date</th>
+                <th>Proof</th>
+                <th>{status === "submitted" ? "Action" : "Status"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eventRows.map(({ p, r, e }) => (
+                <tr key={p.id}>
+                  <td>
+                    {r.name}
+                    <div className="muted-sm">
+                      {r.email} · {r.rate === "member" ? `member ${r.memberCode ?? ""}` : "non-member"}
+                    </div>
+                  </td>
+                  <td>
+                    <Link href={`/admin/events/${e.id}`}>{e.title}</Link>
+                    <div className="muted-sm">Due {rm(r.amount)}</div>
+                    <div className="muted-sm">Expected ref: {r.paymentReference}</div>
+                  </td>
+                  <td className="num">{rm(p.amount)}</td>
+                  <td>
+                    {p.reference}
+                    <div className="muted-sm">
+                      Paid {fmtDate(p.paymentDate)} · sent {fmtDateTime(p.createdAt)}
+                    </div>
+                  </td>
+                  <td className="nowrap">
+                    {p.proofKey && (
+                      <a href={`/files/${p.proofKey.split("/").map(encodeURIComponent).join("/")}`} target="_blank">
+                        View proof
+                      </a>
+                    )}
+                  </td>
+                  <td>
+                    {status === "submitted" && canPay ? (
+                      <div style={{ display: "grid", gap: 8, minWidth: 250 }}>
+                        <ActionForm action={verifyEventPaymentAction.bind(null, p.id)} className="inline-form">
+                          <input className="input" name="amount" defaultValue={money(p.amount).replace(/,/g, "")} aria-label="Amount received (RM)" style={{ width: 100 }} />
+                          <Submit className="btn btn--primary btn--xs">Verify</Submit>
+                        </ActionForm>
+                        <ActionForm action={rejectEventPaymentAction.bind(null, p.id)} className="inline-form">
+                          <input className="input" name="reason" placeholder="Reason to reject" aria-label="Reason" style={{ width: 150 }} />
+                          <Submit className="btn btn--danger btn--xs">Reject</Submit>
+                        </ActionForm>
+                      </div>
+                    ) : (
+                      <>
+                        <PaymentBadge status={p.status} />
+                        {p.receiptNo && (
+                          <div>
+                            <a href={`/receipts/event/${p.id}`} target="_blank">
+                              {p.receiptNo}
+                            </a>
+                          </div>
+                        )}
+                        {p.rejectReason && <div className="muted-sm">{p.rejectReason}</div>}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <Empty>{status === "submitted" ? "No event payments waiting for verification." : "None yet."}</Empty>
         )}
       </div>
     </>

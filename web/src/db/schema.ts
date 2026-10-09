@@ -173,6 +173,8 @@ export const payments = pgTable(
 );
 
 export type ReceiptSnapshot = {
+  kind?: "membership" | "event"; // absent on older (membership) receipts
+  event?: { title: string; date: string };
   receiptNo: string;
   receiptDate: string; // YYYY-MM-DD
   category: Category;
@@ -303,6 +305,85 @@ export const authAttempts = pgTable(
   (t) => [index("auth_attempts_lookup_idx").on(t.kind, t.key, t.createdAt)],
 );
 
+// ---------- events ----------
+
+export type EventAudience = "public" | "members";
+export type EventStatus = "draft" | "published" | "cancelled";
+export type EventRegistrationStatus = "awaiting_payment" | "payment_review" | "confirmed" | "cancelled";
+
+export const events = pgTable(
+  "events",
+  {
+    id: id(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    category: text("category"), // e.g. Workshop, Talk, Networking
+    summary: text("summary").notNull(),
+    body: text("body").notNull().default(""),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    venue: text("venue"),
+    onlineUrl: text("online_url"), // shown only to confirmed attendees
+    audience: text("audience").$type<EventAudience>().notNull().default("public"),
+    capacity: integer("capacity"), // null = unlimited
+    memberPrice: integer("member_price").notNull().default(0), // sen
+    nonMemberPrice: integer("non_member_price"), // sen; null for members-only events
+    registrationClosesAt: timestamp("registration_closes_at", { withTimezone: true }),
+    imageKey: text("image_key"),
+    materials: text("materials"), // members-only: slides, recordings (links or notes)
+    status: text("status").$type<EventStatus>().notNull().default("draft"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("events_starts_idx").on(t.startsAt)],
+);
+
+export const eventRegistrations = pgTable(
+  "event_registrations",
+  {
+    id: id(),
+    eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    organisation: text("organisation"),
+    memberCode: text("member_code"), // Member ID at registration, if a member
+    rate: text("rate").$type<"member" | "non_member">().notNull(),
+    amount: integer("amount").notNull(), // sen
+    paymentReference: text("payment_reference"),
+    status: text("status").$type<EventRegistrationStatus>().notNull(),
+    attended: boolean("attended").notNull().default(false),
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("event_registrations_event_user_idx").on(t.eventId, t.userId), index("event_registrations_status_idx").on(t.status)],
+);
+
+export const eventPayments = pgTable(
+  "event_payments",
+  {
+    id: id(),
+    registrationId: uuid("registration_id").notNull().references(() => eventRegistrations.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    paymentDate: date("payment_date").notNull(),
+    reference: text("reference").notNull(),
+    proofKey: text("proof_key"),
+    proofName: text("proof_name"),
+    status: text("status").$type<PaymentStatus>().notNull().default("submitted"),
+    rejectReason: text("reject_reason"),
+    verifiedBy: uuid("verified_by").references(() => users.id, { onDelete: "set null" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    receiptNo: text("receipt_no").unique(),
+    receipt: jsonb("receipt").$type<ReceiptSnapshot>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("event_payments_status_idx").on(t.status), index("event_payments_registration_idx").on(t.registrationId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
 export type Order = typeof orders.$inferSelect;
@@ -310,3 +391,6 @@ export type Payment = typeof payments.$inferSelect;
 export type Organisation = typeof organisations.$inferSelect;
 export type Seat = typeof seats.$inferSelect;
 export type Receipt = typeof receipts.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type EventRegistration = typeof eventRegistrations.$inferSelect;
+export type EventPayment = typeof eventPayments.$inferSelect;

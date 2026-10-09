@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppHero } from "@/components/ui";
 import { ActionForm, Checkbox, Field, Select, Submit } from "@/components/form";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, safeNext } from "@/lib/auth";
 import { PDPA_CONSENT_TEXT, STATES } from "@/lib/config";
 import { signupAction } from "../actions";
 
@@ -17,7 +17,9 @@ const TIER_COPY: Record<string, { title: string; note?: string }> = {
 export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
   const sp = await searchParams;
   const tier = typeof sp.tier === "string" && sp.tier in TIER_COPY ? sp.tier : "";
-  if (await getCurrentUser()) redirect(tier ? `/portal/apply?tier=${tier}` : "/portal");
+  // Where to go after confirming the email (e.g. back to an event)
+  const next = safeNext(sp.next) ?? "";
+  if (await getCurrentUser()) redirect(next || (tier ? `/portal/apply?tier=${tier}` : "/portal"));
   const copy = TIER_COPY[tier];
   return (
     <>
@@ -34,6 +36,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
           <div className="panel">
             <ActionForm action={signupAction}>
               <input type="hidden" name="tier" value={tier} />
+              <input type="hidden" name="next" value={next} />
               <div className="form-grid">
                 <Field name="name" label="Full name" required autoComplete="name" className="full" />
                 <Field

@@ -16,7 +16,7 @@ import {
   hashPassword,
   safeNext,
 } from "@/lib/auth";
-import { isAcademicEmail, PDPA_CONSENT_VERSION, STATE_CODES, can } from "@/lib/config";
+import { adminHome, isAcademicEmail, PDPA_CONSENT_VERSION, STATE_CODES, can } from "@/lib/config";
 import { sendEmail, templates } from "@/lib/email";
 import { audit } from "@/lib/audit";
 import { invalid, keepValues, plain, type FormState } from "@/lib/form-state";
@@ -41,6 +41,7 @@ const signupSchema = z
     password: passwordField,
     confirmPassword: z.string(),
     tier: z.enum(["student", "individual", "corporate", ""]).optional(),
+    next: z.string().optional(),
     consent: z.literal("yes", { message: "Please give your consent to continue." }),
   })
   .refine((d) => d.password === d.confirmPassword, { path: ["confirmPassword"], message: "Passwords don't match." })
@@ -80,7 +81,7 @@ export async function signupAction(_: FormState, data: FormData): Promise<FormSt
     .returning();
   await audit(user.id, "user.signed_up", "user", user.id, { tier: d.tier });
   const token = await createAuthToken(user.id, "verify_email");
-  await sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token), { userId: user.id });
+  await sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token, safeNext(d.next)), { userId: user.id });
   await createSession(user.id);
   redirect(`/check-email${d.tier ? `?tier=${d.tier}` : ""}`);
 }
@@ -113,7 +114,7 @@ export async function loginAction(_: FormState, data: FormData): Promise<FormSta
   await clearEmailAttempts("login_failed", found.email);
   const user = await grantBootstrapAdmin(found);
   await createSession(user.id);
-  redirect(safeNext(parsed.data.next) ?? (can(user.role, "view") ? "/admin" : "/portal"));
+  redirect(safeNext(parsed.data.next) ?? (can(user.role, "backoffice") ? adminHome(user.role) : "/portal"));
 }
 
 export async function logoutAction() {

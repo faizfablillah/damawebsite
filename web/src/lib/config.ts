@@ -113,20 +113,29 @@ export const PDPA_CONSENT_TEXT = {
 
 export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
 
-export type Role = "member" | "super_admin" | "membership_admin" | "finance";
-export const ADMIN_ROLES: Role[] = ["super_admin", "membership_admin", "finance"];
+export type Role = "member" | "super_admin" | "membership_admin" | "finance" | "events_admin";
+export const ADMIN_ROLES: Role[] = ["super_admin", "membership_admin", "finance", "events_admin"];
 export const ROLE_LABEL: Record<Role, string> = {
   member: "Member",
   super_admin: "Super admin",
   membership_admin: "Membership admin",
   finance: "Finance",
+  events_admin: "Events admin",
 };
 
-export type Permission = "view" | "members" | "payments" | "settings" | "admins" | "import" | "export";
+// backoffice = can open the admin area at all; view = member records and the dashboard;
+// events = create events and manage attendees; announce = email all members
+export type Permission = "backoffice" | "view" | "members" | "payments" | "settings" | "admins" | "import" | "export" | "events" | "announce";
 const PERMS: Record<Role, Permission[]> = {
   member: [],
-  super_admin: ["view", "members", "payments", "settings", "admins", "import", "export"],
-  membership_admin: ["view", "members", "export"],
-  finance: ["view", "payments", "export"],
+  super_admin: ["backoffice", "view", "members", "payments", "settings", "admins", "import", "export", "events", "announce"],
+  membership_admin: ["backoffice", "view", "members", "export", "announce"],
+  finance: ["backoffice", "view", "payments", "export"],
+  events_admin: ["backoffice", "events"],
 };
 export const can = (role: Role | null | undefined, perm: Permission) => !!role && PERMS[role].includes(perm);
+// Where an admin lands in the back office
+export const adminHome = (role: Role) => (can(role, "view") ? "/admin" : "/admin/events");
+
+// Event categories offered in the admin form
+export const EVENT_CATEGORIES = ["Talk", "Workshop", "Training", "Networking", "Conference", "Webinar", "Roundtable"];

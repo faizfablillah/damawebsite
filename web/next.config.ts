@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Clean URLs for the static marketing pages that live in public/*.html
-const STATIC_PAGES = ["about", "leadership", "events", "membership", "contact", "privacy"];
+const STATIC_PAGES = ["about", "leadership", "membership", "contact", "privacy"];
 
 // Everything is served from this site: no third-party scripts, fonts, frames or form targets.
 // Inline scripts are allowed because Next.js and the static pages use them; dev mode also needs eval.
@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite", "pdfkit", "postgres", "nodemailer"],
   // Files read from disk at runtime: pdfkit's font metrics and the database migrations
   outputFileTracingIncludes: {
-    "/**": ["./node_modules/pdfkit/js/data/**", "./drizzle/**"],
+    "/**": ["./node_modules/pdfkit/js/data/**", "./drizzle/**", "./content/**"],
   },
   experimental: {
     serverActions: {
@@ -65,6 +65,8 @@ const nextConfig: NextConfig = {
     return [
       ...hostRedirects,
       { source: "/index.html", destination: "/", permanent: true },
+      // The static Events page became the dynamic /events page (old write-ups are now news posts)
+      { source: "/events.html", destination: "/events", permanent: true },
       ...STATIC_PAGES.map((p) => ({ source: `/${p}.html`, destination: `/${p}`, permanent: true })),
     ];
   },

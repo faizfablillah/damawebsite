@@ -13,7 +13,16 @@ export async function GET(_req: Request, ctx: RouteContext<"/files/[...key]">) {
   if (!user) return new Response("Please log in.", { status: 401 });
   // Database backups hold every record (including password hashes): super admins only
   if (key.startsWith("backups/") && !can(user.role, "admins")) return new Response("Not found", { status: 404 });
-  if (!can(user.role, "view")) {
+  if (key.startsWith("event-payment/")) {
+    // Event payment proofs: Finance (and other record viewers), or the person who uploaded it
+    const db = await getDb();
+    const [row] = await db
+      .select({ userId: schema.eventRegistrations.userId })
+      .from(schema.eventPayments)
+      .innerJoin(schema.eventRegistrations, eq(schema.eventPayments.registrationId, schema.eventRegistrations.id))
+      .where(eq(schema.eventPayments.proofKey, key));
+    if (!row || (!can(user.role, "view") && row.userId !== user.id)) return new Response("Not found", { status: 404 });
+  } else if (!can(user.role, "view")) {
     const db = await getDb();
     const [payment] = await db.select().from(schema.payments).where(eq(schema.payments.proofKey, key));
     const [student] = await db.select().from(schema.memberships).where(eq(schema.memberships.studentProofKey, key));

@@ -337,7 +337,7 @@ test("settings, exports and roles", async ({ page }) => {
   await expect(page.getByText("Ravi Kumar is now finance")).toBeVisible();
   await login(page, INDIVIDUAL);
   await page.goto("/admin/payments");
-  await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Payments", exact: true })).toBeVisible();
   await page.goto("/admin/settings");
   await expect(page.getByText("doesn't include that page")).toBeVisible();
 });
@@ -411,7 +411,7 @@ test("security: redirects, headers, robots, cron and fake banners", async ({ pag
   // A link can't make the admin pages show a made-up confirmation
   await login(page, ADMIN);
   await page.goto("/admin/payments?msg=Your+account+is+locked");
-  await expect(page.getByRole("heading", { name: "Payments" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Payments", exact: true })).toBeVisible();
   await expect(page.getByText("Your account is locked")).toHaveCount(0);
 });
 
@@ -513,4 +513,237 @@ test("nightly backup and admin alerts", async ({ page }) => {
   expect((await page.request.get(href)).status()).toBe(404);
   await page.goto("/admin/export");
   await expect(page.getByText("Database backups")).toHaveCount(0);
+});
+
+// ---------- events ----------
+
+const EVENTS_ADMIN = "late-admin@test.dama.my"; // no membership: also our non-member attendee
+const SEAT_HOLDER = "tan.mei@acme.com.my";
+const klDay = (offset: number) => new Date(Date.now() + 8 * 3_600_000 + offset * 86_400_000).toISOString().slice(0, 10);
+
+async function createEvent(
+  page: import("@playwright/test").Page,
+  e: { title: string; audience: "public" | "members"; day: number; member: string; nonMember?: string; capacity?: string; status: "draft" | "published"; online?: string },
+) {
+  await page.goto("/admin/events/new");
+  await page.getByLabel("Title").fill(e.title);
+  await page.getByLabel("Type").selectOption("Workshop");
+  await page.getByLabel("Who can attend").selectOption(e.audience);
+  await page.getByLabel("Short summary").fill(`${e.title}: a hands-on session for data practitioners.`);
+  await page.getByLabel("Full description").fill("Agenda:\n18:30 Registration\n19:00 Talk\n\nBring your laptop.");
+  await page.getByLabel("Starts (Malaysia time)").fill(`${klDay(e.day)}T19:00`);
+  await page.getByLabel("Ends").fill(`${klDay(e.day)}T21:00`);
+  await page.getByLabel("Venue").fill("Menara DAMA, Kuala Lumpur");
+  if (e.online) await page.getByLabel("Online link (Zoom / Teams)").fill(e.online);
+  await page.getByLabel("Member price (RM)", { exact: true }).fill(e.member);
+  if (e.nonMember) await page.getByLabel("Non-member price (RM)").fill(e.nonMember);
+  if (e.capacity) await page.getByLabel("Places").fill(e.capacity);
+  await page.getByLabel("Cover image").setInputFiles(PNG);
+  await page.getByLabel("Status").selectOption(e.status);
+  await page.getByRole("button", { name: "Create event" }).click();
+  await expect(page.getByText(e.status === "published" ? "Event created and published." : "Event created as a draft.")).toBeVisible();
+}
+
+async function openEvent(page: import("@playwright/test").Page, title: string) {
+  await page.goto("/events");
+  await page.getByRole("link", { name: new RegExp(title) }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+}
+
+test("events: events admin role and creating events", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto("/admin/admins");
+  await page.getByLabel("Account email").fill(EVENTS_ADMIN);
+  await page.getByLabel("Role").selectOption("events_admin");
+  await page.getByRole("button", { name: "Save role" }).click();
+  await expect(page.getByText("is now events admin")).toBeVisible();
+
+  // Events admins land on Events and can't open member records
+  await login(page, EVENTS_ADMIN);
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/admin\/events$/);
+  await page.goto("/admin/members");
+  await expect(page).toHaveURL(/\/admin\/events\?denied=1/);
+  await expect(page.getByText("doesn't include that page")).toBeVisible();
+  expect((await page.request.get("/admin/export/members")).status()).toBe(403);
+
+  await createEvent(page, { title: "Members Roundtable", audience: "members", day: 1, member: "0", capacity: "2", status: "published", online: "https://zoom.us/j/123456" });
+  await createEvent(page, { title: "Data Governance Workshop", audience: "public", day: 10, member: "50", nonMember: "120", status: "published" });
+  await createEvent(page, { title: "Secret Draft Session", audience: "public", day: 20, member: "0", nonMember: "0", status: "draft" });
+});
+
+test("events: listing, members-only events and capacity", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.goto("/events");
+  await expect(page.getByRole("link", { name: /Members Roundtable/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Data Governance Workshop/ })).toBeVisible();
+  await expect(page.getByText("Secret Draft Session")).toHaveCount(0);
+  await openEvent(page, "Data Governance Workshop");
+  await expect(page.getByText("Members RM 50 · Non-members RM 120")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in to register" })).toBeVisible();
+
+  // A member registers for a free members-only event: confirmed at once, with a calendar invite
+  await login(page, STUDENT);
+  await openEvent(page, "Members Roundtable");
+  await expect(page.getByText("Your price: Free (member price)")).toBeVisible();
+  await page.getByRole("button", { name: "Register", exact: true }).click();
+  await expect(page.getByText("You're registered. We've emailed you a confirmation")).toBeVisible();
+  await expect(page.getByRole("link", { name: "https://zoom.us/j/123456" })).toBeVisible();
+  const confirmed = await lastMail(STUDENT, "eventConfirmed");
+  expect(confirmed.attachments).toContain("event.ics");
+  expect(confirmed.text).toContain("https://zoom.us/j/123456");
+
+  // Corporate contact (member) takes the last place
+  await login(page, CORP);
+  await openEvent(page, "Members Roundtable");
+  await page.getByRole("button", { name: "Register", exact: true }).click();
+  await expect(page.getByText("You're registered.")).toBeVisible();
+
+  // Now it's full
+  await login(page, INDIVIDUAL);
+  await openEvent(page, "Members Roundtable");
+  await expect(page.getByText("Sorry, this event is fully booked.")).toBeVisible();
+
+  // Non-members can't register for members-only events
+  await login(page, EVENTS_ADMIN);
+  await openEvent(page, "Members Roundtable");
+  await expect(page.getByText("This event is for DAMA members.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Join DAMA to attend" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "https://zoom.us/j/123456" })).toHaveCount(0);
+});
+
+test("events: paid registration, payment check and receipt", async ({ page }) => {
+  // Non-member pays the non-member price
+  await login(page, EVENTS_ADMIN);
+  await openEvent(page, "Data Governance Workshop");
+  await expect(page.getByText("Your price: RM 120.00")).toBeVisible();
+  await page.getByRole("button", { name: "Register and pay" }).click();
+  await expect(page).toHaveURL(/\/portal\/events\//);
+  await expect(page.getByText("You're registered and your place is reserved")).toBeVisible();
+  await expect(page.getByText(/^DAMA EVT \d{6} Late Admin$/)).toBeVisible();
+  const payUrl = new URL(page.url()).pathname;
+  expect((await lastMail(EVENTS_ADMIN, "eventPaymentNeeded")).text).toContain("RM 120.00");
+  await submitPayment(page, "120", "EVT-BANK-1");
+  await expect(page.getByText("Payment under review")).toBeVisible();
+
+  // A corporate seat holder gets the member price
+  await login(page, SEAT_HOLDER);
+  await openEvent(page, "Data Governance Workshop");
+  await expect(page.getByText("Your price: RM 50.00 (member price)")).toBeVisible();
+
+  // Finance rejects, the attendee resubmits, Finance verifies
+  await login(page, INDIVIDUAL);
+  await page.goto("/admin/payments");
+  let row = page.getByRole("row", { name: /Late Admin/ });
+  await row.getByPlaceholder("Reason to reject").fill("Receipt is unreadable");
+  await row.getByRole("button", { name: "Reject" }).click();
+  await expect(page.getByText("Event payment rejected")).toBeVisible();
+  expect((await lastMail(EVENTS_ADMIN, "eventPaymentRejected")).text).toContain("Receipt is unreadable");
+
+  await login(page, EVENTS_ADMIN);
+  await page.goto(payUrl);
+  await submitPayment(page, "120", "EVT-BANK-2");
+
+  await login(page, INDIVIDUAL);
+  await page.goto("/admin/payments");
+  row = page.getByRole("row", { name: /Late Admin/ });
+  await row.getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByText(/Event payment verified\. Receipt MY\/EVT\/\d{4}\/0001 issued/)).toBeVisible();
+  const mail = await lastMail(EVENTS_ADMIN, "eventConfirmed");
+  expect(mail.attachments).toContain("event.ics");
+  expect(mail.attachments.some((a) => /DAMA Receipt MY-EVT-\d{4}-0001\.pdf/.test(a))).toBe(true);
+
+  // The attendee sees the confirmation and can download the receipt; others can't
+  await login(page, EVENTS_ADMIN);
+  await page.goto(payUrl);
+  await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
+  const receiptHref = (await page.getByRole("link", { name: /MY\/EVT\// }).getAttribute("href"))!;
+  const pdf = await page.request.get(receiptHref);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+  await login(page, STUDENT);
+  expect((await page.request.get(receiptHref)).status()).toBe(404);
+  // ...and the member portal lists their events
+  await page.goto("/portal");
+  await expect(page.getByRole("link", { name: "Members Roundtable" })).toBeVisible();
+});
+
+test("events: attendance, export, attendee email and reminders", async ({ page }) => {
+  await login(page, EVENTS_ADMIN);
+  await page.goto("/admin/events");
+  await page.getByRole("link", { name: "Members Roundtable" }).click();
+  const row = page.getByRole("row", { name: /Aina Student/ });
+  await row.getByRole("button", { name: "Mark attended" }).click();
+  await expect(page.getByText("Marked as attended.")).toBeVisible();
+  await expect(page.getByRole("row", { name: /Aina Student/ }).getByRole("button", { name: "✓ Attended" })).toBeVisible();
+
+  const csvHref = (await page.getByRole("link", { name: "Download CSV" }).getAttribute("href"))!;
+  const csv = await (await page.request.get(csvHref)).text();
+  expect(csv).toContain(STUDENT);
+  expect(csv).toContain(CORP);
+
+  await page.getByLabel("Subject").fill("Parking information");
+  await page.getByLabel("Message").fill("Parking is at level B2.\n\nSee you tomorrow!");
+  await page.getByLabel("Send this email now").check();
+  await page.getByRole("button", { name: "Send email" }).click();
+  await expect(page.getByText("Email sent to 2 of 2 attendees.")).toBeVisible();
+  expect((await lastMail(CORP, "eventMessage")).text).toContain("Parking is at level B2.");
+
+  // The roundtable is tomorrow: the daily job sends one reminder per confirmed attendee
+  const res = await page.request.get("/api/cron/daily", { headers: { Authorization: "Bearer test-cron-secret" } });
+  expect((await res.json()).eventReminders).toBe(2);
+  expect((await lastMail(STUDENT, "eventReminder")).subject).toBe("Reminder: Members Roundtable is tomorrow");
+  const again = await (await page.request.get("/api/cron/daily", { headers: { Authorization: "Bearer test-cron-secret" } })).json();
+  expect(again.eventReminders).toBe(0);
+});
+
+test("news, homepage events feed and old event links", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.goto("/news");
+  await page.getByRole("link", { name: /MoU Signing with Multimedia University/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "MoU Signing with Multimedia University (MMU)" })).toBeVisible();
+  // Old links to the static Events page land on the news post
+  await page.goto("/events#um-mou");
+  await expect(page).toHaveURL(/\/news\/universiti-malaya-mou$/);
+  await page.goto("/events.html");
+  await expect(page).toHaveURL(/\/events$/);
+
+  const feed = await (await page.request.get("/api/public/feed")).json();
+  expect(feed.events.map((e: { title: string }) => e.title)).toContain("Data Governance Workshop");
+  expect(feed.events.map((e: { title: string }) => e.title)).not.toContain("Secret Draft Session");
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Join us at our next events" })).toBeVisible();
+  await expect(page.locator("[data-feed-events] .event-card", { hasText: "Data Governance Workshop" })).toBeVisible();
+});
+
+test("announcements reach active members only", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto("/admin/announce");
+  await page.getByLabel("Send to").selectOption("members");
+  await page.getByLabel("Subject").fill("New partnership with Example University");
+  await page.getByLabel("Message").fill("We're pleased to announce a new partnership.\n\nMembers get 20% off the CDMP course.");
+  await page.getByLabel("Send this email now").check();
+  await page.getByRole("button", { name: "Send announcement" }).click();
+  await expect(page.getByText(/^Sent to \d+ of \d+ recipients\.$/)).toBeVisible();
+  for (const to of [STUDENT, CORP, SEAT_HOLDER]) expect((await lastMail(to, "announcement")).subject).toBe("New partnership with Example University");
+  expect(mails(EVENTS_ADMIN, "announcement")).toHaveLength(0);
+});
+
+test("signing up from an event page returns to the event", async ({ page }) => {
+  await page.context().clearCookies();
+  await openEvent(page, "Data Governance Workshop");
+  await page.getByRole("link", { name: "No account? Create a free account" }).click();
+  await expect(page).toHaveURL(/\/signup\?next=/);
+  await page.getByLabel("Full name").fill("Nora Newcomer");
+  await page.getByLabel("Email address").fill("nora@example.com");
+  await page.getByLabel("Contact number").fill("012-345 6789");
+  await page.getByLabel("Correspondence address").fill("1 Jalan Data, 50450 Kuala Lumpur");
+  await page.getByLabel("State").selectOption("KL");
+  await page.getByLabel("Password", { exact: false }).first().fill(PASSWORD);
+  await page.getByLabel("Confirm password").fill(PASSWORD);
+  await page.getByLabel("I acknowledge and agree").check();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await verifyEmail(page, "nora@example.com");
+  await page.getByRole("link", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Data Governance Workshop" })).toBeVisible();
+  await expect(page.getByText("Your price: RM 120.00")).toBeVisible();
 });

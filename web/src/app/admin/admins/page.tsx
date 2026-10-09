@@ -57,6 +57,7 @@ export default async function AdminsPage() {
               options={[
                 { value: "membership_admin", label: "Membership admin — approvals, members, corporate, seats" },
                 { value: "finance", label: "Finance — verify payments, receipts, exports" },
+                { value: "events_admin", label: "Events admin — create events, manage attendees" },
                 { value: "super_admin", label: "Super admin — everything, including settings and admins" },
                 { value: "member", label: "Member — no admin access" },
               ]}

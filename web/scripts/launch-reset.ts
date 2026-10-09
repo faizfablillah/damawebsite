@@ -9,7 +9,10 @@
 // are available; otherwise empty those folders in the Supabase dashboard (Storage → dama-files).
 import { arg, connect, dump, saveLocal, TABLES, TRANSIENT } from "./db";
 
+// Events themselves are kept (they may be real upcoming events); their test registrations go
 const WIPE = [
+  "event_payments",
+  "event_registrations",
   "org_notes",
   "org_documents",
   "seat_requests",
@@ -25,7 +28,7 @@ const WIPE = [
   "counters",
   ...TRANSIENT,
 ];
-const FILE_FOLDERS = ["payment-proof/", "student-proof/", "corporate-docs/"];
+const FILE_FOLDERS = ["payment-proof/", "student-proof/", "corporate-docs/", "event-payment/"];
 
 async function main() {
   const keep = (arg("keep") ?? "")

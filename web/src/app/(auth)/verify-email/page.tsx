@@ -2,7 +2,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { AppHero, Notice } from "@/components/ui";
 import { getDb, schema } from "@/db";
-import { consumeAuthToken, grantBootstrapAdmin } from "@/lib/auth";
+import { consumeAuthToken, grantBootstrapAdmin, safeNext } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 export const metadata = { title: "Email confirmed" };
@@ -25,8 +25,8 @@ export default async function VerifyEmailPage({ searchParams }: PageProps<"/veri
           {userId ? (
             <div className="panel panel--accent">
               <p>Thank you — your email address is confirmed.</p>
-              <Link className="btn btn--primary" href="/portal">
-                Continue your application
+              <Link className="btn btn--primary" href={safeNext(sp.next) ?? "/portal"}>
+                Continue
               </Link>
             </div>
           ) : (

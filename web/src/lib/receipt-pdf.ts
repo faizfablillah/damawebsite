@@ -46,13 +46,22 @@ export function receiptPdf(r: ReceiptSnapshot, website: string): Promise<Buffer>
       });
       return top + 15 + rows.length * rowH;
     };
+    const isEvent = r.kind === "event";
     const period = r.periodStart && r.periodEnd ? `${fmtDate(r.periodStart)}  to  ${fmtDate(r.periodEnd)}` : (r.periodNote ?? "—");
     const leftEnd = box(L, "RECEIVED FROM", r.payer);
     const rightEnd = box(L + colW + 14, "RECEIPT DETAILS", [
       { label: "Receipt No.", value: r.receiptNo },
       { label: "Receipt Date", value: fmtDateDash(r.receiptDate) },
-      { label: "Membership ID", value: r.memberCode ?? "Assigned on activation" },
-      { label: "Membership Period", value: period },
+      ...(isEvent
+        ? [
+            { label: "Event", value: r.event?.title ?? "" },
+            { label: "Event Date", value: fmtDateDash(r.event?.date ?? null) },
+            { label: "Membership ID", value: r.memberCode ?? "Non-member" },
+          ]
+        : [
+            { label: "Membership ID", value: r.memberCode ?? "Assigned on activation" },
+            { label: "Membership Period", value: period },
+          ]),
       { label: "Payment Method", value: r.method },
       { label: "Payment Date", value: fmtDateDash(r.paymentDate) },
       { label: "Payment Reference", value: r.paymentReference },
@@ -109,7 +118,9 @@ export function receiptPdf(r: ReceiptSnapshot, website: string): Promise<Buffer>
 
     doc.font("Helvetica-Oblique").fontSize(8).fillColor("#000");
     doc.text(
-      r.status === "PAID IN FULL"
+      isEvent
+        ? "Payment received in full. Your place at the event is confirmed."
+        : r.status === "PAID IN FULL"
         ? r.periodStart
           ? "Payment received in full. Membership is active for the period shown above."
           : "Payment received in full. Membership is activated once eligibility is verified."
@@ -134,7 +145,13 @@ export function receiptPdf(r: ReceiptSnapshot, website: string): Promise<Buffer>
     doc.rect(L, y, W, 15).fill(NAVY);
     doc.font("Helvetica-Bold").fontSize(8).fillColor("#fff").text("NOTES & CONDITIONS", L + 5, y + 4);
     y += 20;
-    const notes = [
+    const notes = isEvent
+      ? [
+          "This official receipt confirms that payment for the event shown above has been received and cleared.",
+          "Event fees are non-refundable. A registered place may be transferred to a colleague by written notice to the chapter before the event.",
+          "If the event is cancelled or postponed by the chapter, the fee will be refunded or carried over to the new date.",
+        ]
+      : [
       r.status === "PAID IN FULL"
         ? "This official receipt confirms that payment has been received and cleared. No further payment is due for the period shown."
         : "This official receipt confirms the amount received as shown above. Where a balance is outstanding, membership is activated only once the balance is settled.",

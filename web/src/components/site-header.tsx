@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { can } from "@/lib/config";
+import { adminHome, can } from "@/lib/config";
 import { logoutAction } from "@/app/(auth)/actions";
 
 export async function SiteHeader() {
@@ -21,11 +21,12 @@ export async function SiteHeader() {
             <a href="/">Home</a>
             <a href="/about">About</a>
             <a href="/events">Events</a>
+            <a href="/news">News</a>
             <a href="/membership">Membership</a>
             <a href="/contact">Contact</a>
             {user ? (
               <>
-                {can(user.role, "view") && <Link href="/admin">Admin</Link>}
+                {can(user.role, "backoffice") && <Link href={adminHome(user.role)}>Admin</Link>}
                 <Link href="/portal">My Membership</Link>
                 <form action={logoutAction} style={{ margin: 0 }}>
                   <button className="btn btn--light btn--sm" type="submit">

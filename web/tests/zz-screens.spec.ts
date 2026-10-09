@@ -10,6 +10,7 @@ const shots: [string, string, string][] = [
   ["about", "", "/about"],
   ["leadership", "", "/leadership"],
   ["events", "", "/events"],
+  ["news", "", "/news"],
   ["membership", "", "/membership"],
   ["contact", "", "/contact"],
   ["privacy", "", "/privacy"],
@@ -35,6 +36,14 @@ const shots: [string, string, string][] = [
   ["admin-import", "admin@test.dama.my", "/admin/import"],
   ["admin-admins", "admin@test.dama.my", "/admin/admins"],
   ["admin-audit", "admin@test.dama.my", "/admin/audit"],
+  ["news-post", "", "/news/universiti-malaya-mou"],
+  ["event-detail", "", "/events"],
+  ["event-member", "aina@siswa.um.edu.my", "/events"],
+  ["event-pay", "nora@example.com", "/events"],
+  ["admin-events", "late-admin@test.dama.my", "/admin/events"],
+  ["admin-event-detail", "late-admin@test.dama.my", "/admin/events"],
+  ["admin-payments-events", "ravi@example.com", "/admin/payments?status=verified"],
+  ["admin-announce", "admin@test.dama.my", "/admin/announce"],
 ];
 
 // Show scroll-triggered fade-ins, then save the page in screen-sized parts (full-page shots are too small to review)
@@ -62,6 +71,11 @@ for (const [name, who, url] of shots) {
     if (name === "organisation-seats") await page.getByRole("link", { name: "Manage seats & details" }).click();
     if (name === "pay") await page.getByRole("link", { name: "Pay and upload receipt" }).click();
     if (name === "admin-member-detail") await page.getByRole("link", { name: "Acme Data Sdn Bhd" }).click();
+    if (name === "event-detail" || name === "event-pay") await page.getByRole("link", { name: /Data Governance Workshop/ }).first().click();
+    if (name === "event-member") await page.getByRole("link", { name: /Members Roundtable/ }).first().click();
+    if (name === "event-pay") await page.getByRole("button", { name: "Register and pay" }).click();
+    if (name === "event-pay") await page.waitForURL(/\/portal\/events\//);
+    if (name === "admin-event-detail") await page.getByRole("link", { name: "Data Governance Workshop" }).click();
     await page.waitForLoadState("networkidle");
     await shoot(page, name);
     await page.setViewportSize({ width: 390, height: 844 });

@@ -9,7 +9,7 @@ import { Flash } from "@/components/flash";
 export const metadata = { title: "Admin" };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const admin = await requireAdmin("view");
+  const admin = await requireAdmin("backoffice");
   await refreshStatuses();
   const db = await getDb();
   const [[payments], [eligibility], [leads], [seatReqs]] = await Promise.all([
@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     db.select({ n: count() }).from(schema.organisations).where(inArray(schema.organisations.pipelineStatus, ["new_lead"])),
     db.select({ n: count() }).from(schema.seatRequests).where(eq(schema.seatRequests.status, "pending")),
   ]);
+  const [eventPayments] = await db.select({ n: count() }).from(schema.eventPayments).where(eq(schema.eventPayments.status, "submitted"));
   const r = admin.role;
   return (
     <>
@@ -38,20 +39,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="container admin-layout" style={{ maxWidth: 1360 }}>
           <AdminNav
             items={[
-              { href: "/admin", label: "Dashboard", show: true },
-              { href: "/admin/payments", label: "Payments", count: payments.n, show: true },
-              { href: "/admin/members?category=E", label: "Students", count: eligibility.n, show: true },
-              { href: "/admin/members?category=I", label: "Individuals", show: true },
-              { href: "/admin/corporate", label: "Corporate", count: leads.n + seatReqs.n, show: true },
-              { href: "/admin/renewals", label: "Renewals", show: true },
+              { href: "/admin", label: "Dashboard", show: can(r, "view") },
+              { href: "/admin/payments", label: "Payments", count: payments.n + eventPayments.n, show: can(r, "view") },
+              { href: "/admin/members?category=E", label: "Students", count: eligibility.n, show: can(r, "view") },
+              { href: "/admin/members?category=I", label: "Individuals", show: can(r, "view") },
+              { href: "/admin/corporate", label: "Corporate", count: leads.n + seatReqs.n, show: can(r, "view") },
+              { href: "/admin/renewals", label: "Renewals", show: can(r, "view") },
+              { href: "/admin/events", label: "Events", show: can(r, "events") },
+              { href: "/admin/announce", label: "Announce", show: can(r, "announce") },
               "sep",
-              { href: "/admin/members", label: "All members", show: true },
-              { href: "/admin/emails", label: "Email log", show: true },
+              { href: "/admin/members", label: "All members", show: can(r, "view") },
+              { href: "/admin/emails", label: "Email log", show: can(r, "view") },
               { href: "/admin/export", label: "Export", show: can(r, "export") },
               { href: "/admin/import", label: "Import", show: can(r, "import") },
               { href: "/admin/settings", label: "Settings", show: can(r, "settings") },
               { href: "/admin/admins", label: "Admins", show: can(r, "admins") },
-              { href: "/admin/audit", label: "Audit trail", show: true },
+              { href: "/admin/audit", label: "Audit trail", show: can(r, "view") },
             ]}
           />
           <div>

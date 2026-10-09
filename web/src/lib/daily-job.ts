@@ -4,6 +4,7 @@ import { getDb, schema } from "@/db";
 import { createBackup } from "./backup";
 import { sendEmail, templates } from "./email";
 import { runDailyTasks } from "./membership";
+import { sendEventReminders } from "./events";
 
 // The scheduled daily run: statuses and renewal reminders, the nightly backup, then a health check.
 // Any problem is emailed to ALERT_EMAILS (comma-separated) or, if unset, to every super admin.
@@ -12,11 +13,17 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : String(e)).sli
 export async function runDailyJob(opts: { testAlert?: boolean } = {}) {
   const problems: string[] = [];
   let reminders: number | null = null;
+  let eventReminders: number | null = null;
   let backup: Awaited<ReturnType<typeof createBackup>> | null = null;
   try {
     reminders = (await runDailyTasks()).sent;
   } catch (e) {
     problems.push(`Status updates and renewal reminders failed: ${errText(e)}`);
+  }
+  try {
+    eventReminders = await sendEventReminders();
+  } catch (e) {
+    problems.push(`Event reminders failed: ${errText(e)}`);
   }
   try {
     backup = await createBackup();
@@ -39,7 +46,7 @@ export async function runDailyJob(opts: { testAlert?: boolean } = {}) {
       if (await sendEmail(to, "adminAlert", templates.adminAlert(problems))) alerted++;
     }
   }
-  return { reminders, backup: backup && { key: backup.key, bytes: backup.bytes, removed: backup.removed }, problems, alerted };
+  return { reminders, eventReminders, backup: backup && { key: backup.key, bytes: backup.bytes, removed: backup.removed }, problems, alerted };
 }
 
 async function alertRecipients() {

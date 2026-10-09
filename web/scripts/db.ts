@@ -61,6 +61,9 @@ export const TABLES = [
   "email_log",
   "renewal_reminders",
   "audit_log",
+  "events",
+  "event_registrations",
+  "event_payments",
 ];
 // Logins, one-time links and rate-limit counters: never backed up, cleared on restore
 export const TRANSIENT = ["sessions", "auth_tokens", "auth_attempts"];

@@ -45,13 +45,14 @@ export async function placesTaken(eventId: string, tx?: Tx) {
 
 export async function publishedEvents(when: "upcoming" | "past", limit = 50) {
   const db = await getDb();
+  // Raw SQL parameters aren't typed, so dates go in as ISO strings (postgres-js would send Date.toString())
   const now = new Date();
   // An event counts as upcoming until it has ended (or 3 hours after it starts if no end time)
   const endExpr = sql`coalesce(${schema.events.endsAt}, ${schema.events.startsAt} + interval '3 hours')`;
   return db
     .select()
     .from(schema.events)
-    .where(and(inArray(schema.events.status, ["published", "cancelled"]), when === "upcoming" ? sql`${endExpr} >= ${now}` : sql`${endExpr} < ${now}`))
+    .where(and(inArray(schema.events.status, ["published", "cancelled"]), when === "upcoming" ? sql`${endExpr} >= ${now.toISOString()}::timestamptz` : sql`${endExpr} < ${now.toISOString()}::timestamptz`))
     .orderBy(when === "upcoming" ? asc(schema.events.startsAt) : desc(schema.events.startsAt))
     .limit(limit);
 }

@@ -3,6 +3,8 @@
 /DAMA Branding Materials/
 /DAMA Media Assets/
 /DAMA Malaysia Board of Directors/
+# Partnership folders hold internal notes and correspondence: keep local
+/DAMA - */
 /DAMA Website V1.0 – Figma Make_files/
 /DAMA Website V1.0 – Figma Make.html
 # Reference documents (bank details, personal data): never commit

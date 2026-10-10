@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 9 October 2026 (night). Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 10 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -38,7 +38,7 @@ web/                        THE APP — public website + membership system (Next
   public/assets/            CSS, JS, fonts, optimised images
   src/                      App code (see web/README.md "Code map")
   drizzle/                  Database migrations (applied automatically)
-  scripts/                  Maintenance: launch-reset.ts, restore-backup.ts, check-db-reconnect.ts
+  scripts/                  Maintenance: launch-reset.ts, remove-accounts.ts, restore-backup.ts, check-db-reconnect.ts
   tests/                    Playwright end-to-end tests
   README.md                 How to run, configure, deploy
 scripts/
@@ -88,6 +88,7 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 | Student eligibility | Email must end in `.edu` or `.edu.my` **and** upload student card or offer letter; admin approves |
 | Payment (v1) | Bank transfer to the association's AmBank account → member uploads proof → admin verifies. **No payment gateway, no LHDN e-invoice** (non-profit, outside MyInvois; SST 0% per VP Finance) |
 | Corporate | Pay-first (matches the board's corporate Google Form) with optional "PIC please contact me first" lead. Part payments supported; activate only when fully paid |
+| Special term | Super admins can set a board-approved term (1–5 years) and price on an order **before** verifying its payment (Admin → member record → "Special term"); the receipt and end date follow it. First used 10 Oct 2026: the President, 3 years for RM 500 |
 | Payment references | `DAMA MBRP EDU <Name>` · `DAMA MBRP IND <Name>` · `DAMA MBRP Ent <Small/Medium/Large/Plus> <Organisation>` |
 | Member ID | `[E\|I\|C]` + `MY` + state code + 2-digit year **first joined** + `-` + 4-digit running number (per category, resets yearly). Corporate seats `/S01…/S20`. Never changes on renewal. e.g. `IMYKL26-0001`, `CMYSL26-0001/S03` |
 | State codes | JH KD KN MK NS PH PP PK PL SL TR SB SW KL LB PJ OS (Overseas) — from the VP Finance's Member ID structure |
@@ -105,7 +106,7 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 
 **Member:** Join → choose tier → create account (name, email, phone, job title, organisation, address, state, password, PDPA consent) → confirm email → application (student: institution, graduation year, proof; corporate: company details, SSM no., tier, interests) → payment page (bank details + exact reference) → upload transfer receipt → "under review" → email with receipt PDF and Member ID → member portal (card, receipts, renew, profile; corporate: seats).
 
-**Admin (`/admin`):** Dashboard (sign-ups today by tier, payments to verify, student checks, corporate leads, seat requests, renewals due, active totals, recent activity) · Payments (verify with actual amount → part payment if less; reject with reason; record offline payment; discount) · Students / Individuals / All members (search, filters, full record) · Corporate (pipeline: New lead → PIC contacted → Invoice sent → Pending payment → Payment review → Pending user list → Active; assign PIC, notes, upload proposals/invoices, manage seats, approve swaps) · Renewals · Email log · Export (members, payments, seats as CSV) · Import · Settings (prices, bank details, grace, reminders) · Admins (roles) · Audit trail.
+**Admin (`/admin`):** Dashboard (sign-ups today by tier, payments to verify, student checks, corporate leads, seat requests, renewals due, active totals, recent activity) · Payments (verify with actual amount → part payment if less; reject with reason; record offline payment; discount; special term — super admins) · Students / Individuals / All members (search, filters, full record) · Corporate (pipeline: New lead → PIC contacted → Invoice sent → Pending payment → Payment review → Pending user list → Active; assign PIC, notes, upload proposals/invoices, manage seats, approve swaps) · Renewals · Email log · Export (members, payments, seats as CSV) · Import · Settings (prices, bank details, grace, reminders) · Admins (roles) · Audit trail.
 
 **Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export, announcements), Finance (payments incl. event payments, receipts, export), **Events admin** (events and attendees only — no member records or payments). First super admin = an account whose email is in `SUPER_ADMIN_EMAILS`, granted only after the email is confirmed and only while no super admin exists (so production ignores it now; add further admins in Admin → Admins). Super admins can also **disable** an account there (signs it out everywhere, blocks login and password reset).
 
@@ -117,9 +118,9 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 - **Database:** Drizzle ORM. Locally an embedded Postgres (PGlite) in `web/.data/`; in production any Postgres via `DATABASE_URL`. 17 tables (users, sessions, tokens, organisations, notes, documents, memberships, orders, payments, receipts, seats, seat requests, counters, settings, email log, renewal reminders, audit log). Money stored in sen.
 - **Auth:** own implementation — bcrypt passwords, 30-day httpOnly session cookie (hashed in DB), email verification and reset tokens.
 - **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account from one network, 50 per account from anywhere, or 30 per network in 15 min → locked until the window passes or the password is reset (so a stranger can't keep someone else locked out); reset emails 3/hour per address (silent) and 10/hour per IP; sign-up attempts 20/hour per IP (every attempt counts). Old rows pruned by the daily job.
-- **Security hardening (9 Oct 2026 review):** every admin page checks access itself (not just the layout); login only redirects within the site; security headers (CSP, no framing, nosniff, referrer and permissions policies) in `next.config.ts`; CSV exports escape formulas; names and organisation names can't contain links; changing a password signs out other devices; confirmation banners travel in a short cookie, not the URL; payment verify/reject and double-submitted applications are race-safe; constant-time cron secret check. `robots.txt` keeps admin/portal out of search; `sitemap.xml` lists public pages. Social preview tags in `public/*.html` use `https://dama-malaysia.vercel.app` — **change them when the domain moves to dama.org.my**.
+- **Security hardening (9 Oct 2026 review):** every admin page checks access itself (not just the layout); login only redirects within the site; security headers (CSP, no framing, nosniff, referrer and permissions policies) in `next.config.ts`; CSV exports escape formulas; names and organisation names can't contain links; changing a password signs out other devices; confirmation banners travel in a short cookie, not the URL; payment verify/reject and double-submitted applications are race-safe; constant-time cron secret check. `robots.txt` keeps admin/portal out of search; `sitemap.xml` lists public pages. Social preview tags in `public/*.html` point at dama.org.my.
 - **Files:** private storage (local disk, or any S3-compatible bucket such as Supabase Storage). Uploads checked by content (PDF/JPG/PNG/WEBP, ≤ 4 MB). Served only to admins or the owner.
-- **Email:** Microsoft 365 via the Graph API (`MS_*` settings — used now, sending as faiz@keppstone.onmicrosoft.com), or SMTP (`SMTP_*`, e.g. a Gmail app password for info.damamalaysia@gmail.com later), or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`. Replies always go to info.damamalaysia@gmail.com.
+- **Email:** SMTP (`SMTP_*` — used now: Zoho, sending as "DAMA Malaysia" <info@dama.org.my>), or Microsoft 365 via the Graph API (`MS_*`, switched off), or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`.
 - **PDF receipts:** pdfkit, generated from a stored snapshot (receipts never change after issue).
 - **Daily job:** `GET /api/cron/daily` with `Authorization: Bearer CRON_SECRET` (scheduled in `web/vercel.json`, 01:00 UTC).
 
@@ -154,13 +155,14 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 
 Re-running the setup or changing a setting: edit `web/.env.production.local`, update the variable in Vercel (`npx vercel env add NAME production`), redeploy. Never paste secrets in chat — log in with `! npx vercel login`, `! az login`, or put values in the git-ignored files.
 
-**Still to do before real members pay:** upgrade Vercel to **Pro (~USD 20/month)** (Hobby is non-commercial only); wipe the board's test data; import existing members; later point `dama.org.my` at the app and retire `docs/` / GitHub Pages.
+**Still to do before more members pay:** upgrade Vercel to **Pro (~USD 20/month)** (Hobby is non-commercial only); import existing members. Production super admin: **admin@dama.org.my** (the keppstone test account was removed on 10 Oct 2026).
 
 **Maintenance scripts** (`web/scripts/`, run from `web/`; each shows a dry run unless `--confirm` is given, and saves a local `*.json.gz` safety copy first — these files hold personal data and are git-ignored):
 
 | Task | Command |
 |---|---|
-| Launch day: wipe test data, restart Member IDs / receipt numbers at 0001, keep Settings and your account | `npx tsx --env-file=.env.production.local scripts/launch-reset.ts --keep=faiz@keppstone.onmicrosoft.com --confirm`, then empty `payment-proof/`, `student-proof/`, `corporate-docs/` in Supabase → Storage → dama-files |
+| Wipe **everything** (all memberships, payments, receipts, logs), restart numbering at 0001, keep Settings, events and the named accounts. **Now that real members exist, don't use this** | `npx tsx --env-file=.env.production.local scripts/launch-reset.ts --keep=admin@dama.org.my --confirm` |
+| Remove named accounts with everything they own (memberships, receipts, corporate organisation, uploads), keep everyone else; numbering continues after the highest number still in use | `npx tsx --env-file=.env.production.local scripts/remove-accounts.ts --remove=a@x.com,b@y.com --confirm` |
 | Restore a backup (download it from Admin → Export first) | `npx tsx --env-file=.env.production.local scripts/restore-backup.ts dama-YYYY-MM-DD.json.gz --confirm` |
 
 Backups contain database records only; uploaded files stay in the bucket. Supabase's free plan has no downloadable backups of its own, so download one from Admin → Export now and then and keep it in DAMA's drive (not email). Restore was tested end to end on 9 Oct 2026 (restored data identical to the backup).
@@ -171,17 +173,17 @@ Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pr
 
 ## 9. Open items / next steps
 
-### Where things stand (end of 9 Oct 2026)
+### Where things stand (10 Oct 2026)
 
-The system is **production-ready apart from the launch steps below**. Live at https://dama.org.my with: membership (student / individual / corporate, bank transfer + receipts), events (free/paid, members-only, partner events), news, announcements, nightly backups + alert emails, security hardening, email from `info@dama.org.my` (Zoho, SPF/DKIM/DMARC pass, lands in Gmail inbox). First partner content is live: World Data Summit APAC 2026 (event + news post, 29–30 Oct; member promo code shown to members only). Production still holds **test data** (3 test memberships, 2 test accounts).
+The system is **production-ready apart from the launch steps below**. Live at https://dama.org.my with: membership (student / individual / corporate, bank transfer + receipts), events (free/paid, members-only, partner events), news, announcements, nightly backups + alert emails, security hardening, email from `info@dama.org.my` (Zoho, SPF/DKIM/DMARC pass, lands in Gmail inbox). First partner content is live: World Data Summit APAC 2026 (event + news post, 29–30 Oct; member promo code shown to members only). Test data was removed on 10 Oct 2026; production now holds real data only (first member: the President, IMYSL26-0001).
 
 ### Next steps, in order
 
 1. [ ] **Email members about WDS APAC 2026** (Admin → Announce → Active members; text drafted in the 9 Oct session) and post the news link on LinkedIn. WDS-side checks (speaker, venue line on their booking page, promo code test, our logo on their site) are tracked in the local partnership folder.
 2. [ ] **Old Gmail inbox:** auto-reply/forward on info.damamalaysia@gmail.com → info@dama.org.my; give whoever monitored it (Eva) access to info@ in Zoho.
-3. [ ] **Finish board testing** (only Datin has tested so far) — or decide it's done. When Eva and Peggy agree, give them Membership admin / Finance roles (Admin → Admins); give the Programs team (Iffah, Quak) the Events admin role.
+3. [ ] **Finish board testing** (only Datin has tested so far) — or decide it's done. Test sign-ups now create real Member IDs; remove test accounts afterwards with `scripts/remove-accounts.ts`. When Eva and Peggy agree, give them Membership admin / Finance roles (Admin → Admins); give the Programs team (Iffah, Quak) the Events admin role.
 4. [ ] **Upgrade Vercel to Pro** (~USD 20/month) before real members pay (Hobby is non-commercial only).
-5. [ ] **Wipe test data**: `npx tsx --env-file=.env.production.local scripts/launch-reset.ts --keep=faiz@keppstone.onmicrosoft.com` (dry run), then `--confirm`; empty `payment-proof/`, `student-proof/`, `corporate-docs/`, `event-payment/` in Supabase Storage. Keeps settings and events.
+5. [x] **Wipe test data** — done 10 Oct 2026 with `scripts/remove-accounts.ts` (test accounts faiz@keppstone, faizfablillah@gmail.com, habsahnordin73+test removed; numbering restarted).
 6. [ ] **Import existing paid members** (spreadsheet from Eva / Peggy) via Admin → Import, so they keep their Member IDs.
 7. [ ] **Announce the launch** (board, members, LinkedIn) and ask DAMA International to add https://dama.org.my to the chapter list (we show no website there today).
 8. [ ] Download a backup from Admin → Export after launch and monthly; keep it in DAMA's drive (not email).
@@ -207,6 +209,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 - [x] 9 Oct — events, news, announcements, partner events built; WDS APAC 2026 published.
 - [x] 9 Oct — moved to **dama.org.my** (DNS at Vercel); GitHub Pages forwards there.
 - [x] 9 Oct — Zoho Mail (admin@, info@); website sends as "DAMA Malaysia" <info@dama.org.my>; contact address switched everywhere.
+- [x] 10 Oct — admin@dama.org.my is the production super admin (account only, no membership); test data removed; **first real member: Datin Habsah, IMYSL26-0001**, 3-year special term (10 Oct 2026 – 9 Oct 2029, RM 500), receipt MY/MEM/2026/0001.
 
 ---
 

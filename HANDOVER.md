@@ -155,7 +155,7 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 
 Re-running the setup or changing a setting: edit `web/.env.production.local`, update the variable in Vercel (`npx vercel env add NAME production`), redeploy. Never paste secrets in chat — log in with `! npx vercel login`, `! az login`, or put values in the git-ignored files.
 
-**Still to do before more members pay:** upgrade Vercel to **Pro (~USD 20/month)** (Hobby is non-commercial only); import existing members. Production super admin: **admin@dama.org.my** (the keppstone test account was removed on 10 Oct 2026).
+Vercel is on **Pro** and Supabase on **Pro** since 10 Oct 2026. There are **no earlier paid members to import** (confirmed 10 Oct 2026): board members join through the website like everyone else. Production super admin: **admin@dama.org.my** (the keppstone test account was removed on 10 Oct 2026).
 
 **Maintenance scripts** (`web/scripts/`, run from `web/`; each shows a dry run unless `--confirm` is given, and saves a local `*.json.gz` safety copy first — these files hold personal data and are git-ignored):
 
@@ -181,17 +181,17 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 
 1. [ ] **Email members about WDS APAC 2026** (Admin → Announce → Active members; text drafted in the 9 Oct session) and post the news link on LinkedIn. WDS-side checks (speaker, venue line on their booking page, promo code test, our logo on their site) are tracked in the local partnership folder.
 2. [ ] **Old Gmail inbox:** auto-reply/forward on info.damamalaysia@gmail.com → info@dama.org.my; give whoever monitored it (Eva) access to info@ in Zoho.
-3. [ ] **Finish board testing** (only Datin has tested so far) — or decide it's done. Test sign-ups now create real Member IDs; remove test accounts afterwards with `scripts/remove-accounts.ts`. When Eva and Peggy agree, give them Membership admin / Finance roles (Admin → Admins); give the Programs team (Iffah, Quak) the Events admin role.
-4. [ ] **Upgrade Vercel to Pro** (~USD 20/month) before real members pay (Hobby is non-commercial only).
+3. [ ] **Board members register and pay** their membership on the website (Datin done: IMYSL26-0001). Once they have, give roles in Admin → Admins (below). Board testing is otherwise considered done. Test sign-ups now create real Member IDs; remove test accounts afterwards with `scripts/remove-accounts.ts`. When Eva and Peggy agree, give them Membership admin / Finance roles (Admin → Admins); give the Programs team (Iffah, Quak) the Events admin role.
+4. [x] **Vercel Pro** — done 10 Oct 2026 (Supabase Pro too).
 5. [x] **Wipe test data** — done 10 Oct 2026 with `scripts/remove-accounts.ts` (test accounts faiz@keppstone, faizfablillah@gmail.com, habsahnordin73+test removed; numbering restarted).
-6. [ ] **Import existing paid members** (spreadsheet from Eva / Peggy) via Admin → Import, so they keep their Member IDs.
+6. [x] ~~Import existing paid members~~ — not needed: there are none (10 Oct 2026). Admin → Import stays available.
 7. [ ] **Announce the launch** (board, members, LinkedIn) and ask DAMA International to add https://dama.org.my to the chapter list (we show no website there today).
 8. [ ] Download a backup from Admin → Export after launch and monthly; keep it in DAMA's drive (not email).
 
 ### Later / housekeeping
 
 - [ ] Delete the Entra app "DAMA website" and the `dama-website-senders` group in the keppstone tenant once Zoho has run smoothly for a week or two.
-- [ ] Replace placeholder **testimonials**; review the older news write-ups.
+- [ ] Replace placeholder **testimonials** — board decided (10 Oct 2026) to keep them for now and replace them with real member quotes after about 6 months (~Apr 2027). Review the older news write-ups.
 - [ ] Full-resolution **board headshots** and event photos (current ones come from the Infopack PDF).
 - [ ] **TIN** for receipts — confirm with the Treasurer/VP Finance (receipt shows ROS no. only).
 - [ ] Move Vercel / Supabase / Zoho / the domain to DAMA-owned accounts (all currently under Faiz; domain registered at YeahHost under Faiz's account).

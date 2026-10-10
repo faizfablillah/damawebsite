@@ -119,7 +119,7 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 - **Next.js 16.3** (App Router, Server Actions, Turbopack) + React 19, TypeScript. Next 16 differs from older versions — read `web/node_modules/next/dist/docs/` before changing framework code (async `params`/`cookies()`, `proxy` instead of `middleware`).
 - **Database:** Drizzle ORM. Locally an embedded Postgres (PGlite) in `web/.data/`; in production any Postgres via `DATABASE_URL`. 17 tables (users, sessions, tokens, organisations, notes, documents, memberships, orders, payments, receipts, seats, seat requests, counters, settings, email log, renewal reminders, audit log). Money stored in sen.
 - **Auth:** own implementation — bcrypt passwords, 30-day httpOnly session cookie (hashed in DB), email verification and reset tokens.
-- **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account from one network, 50 per account from anywhere, or 30 per network in 15 min → locked until the window passes or the password is reset (so a stranger can't keep someone else locked out); reset emails 3/hour per address (silent) and 10/hour per IP; sign-up attempts 20/hour per IP (every attempt counts). Old rows pruned by the daily job.
+- **Rate limiting** (`src/lib/rate-limit.ts`, table `auth_attempts`): 5 failed logins per account from one network, 50 per account from anywhere, or 30 per network in 15 min → locked until the window passes or the password is reset (so a stranger can't keep someone else locked out); reset emails 3/hour per address (silent) and 10/hour per IP; sign-up attempts 100/hour per IP (every attempt counts; raised from 20 on 10 Oct 2026 for events on shared Wi-Fi). Old rows pruned by the daily job.
 - **Security hardening (9 Oct 2026 review):** every admin page checks access itself (not just the layout); login only redirects within the site; security headers (CSP, no framing, nosniff, referrer and permissions policies) in `next.config.ts`; CSV exports escape formulas; names and organisation names can't contain links; changing a password signs out other devices; confirmation banners travel in a short cookie, not the URL; payment verify/reject and double-submitted applications are race-safe; constant-time cron secret check. `robots.txt` keeps admin/portal out of search; `sitemap.xml` lists public pages. Social preview tags in `public/*.html` point at dama.org.my.
 - **Files:** private storage (local disk, or any S3-compatible bucket such as Supabase Storage). Uploads checked by content (PDF/JPG/PNG/WEBP, ≤ 4 MB). Served only to admins or the owner.
 - **Email:** SMTP (`SMTP_*` — used now: Zoho, sending as "DAMA Malaysia" <info@dama.org.my>), or Microsoft 365 via the Graph API (`MS_*`, switched off), or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`.
@@ -177,28 +177,50 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
 
 ### Where things stand (10 Oct 2026)
 
-The system is **production-ready apart from the launch steps below**. Live at https://dama.org.my with: membership (student / individual / corporate, bank transfer + receipts), events (free/paid, members-only, partner events), news, announcements, nightly backups + alert emails, security hardening, email from `info@dama.org.my` (Zoho, SPF/DKIM/DMARC pass, lands in Gmail inbox). First partner content is live: World Data Summit APAC 2026 (event + news post, 29–30 Oct; member promo code shown to members only). Test data was removed on 10 Oct 2026; production now holds real data only (first member: the President, IMYSL26-0001).
+The system is **production-ready apart from the launch steps below**. Live at https://dama.org.my with: membership (student / individual / corporate, bank transfer + receipts), events (free/paid, members-only, partner events), news, announcements, nightly backups + alert emails, security hardening, email from `info@dama.org.my` (Zoho, SPF/DKIM/DMARC pass, lands in Gmail inbox). First partner content is live: World Data Summit APAC 2026 (event + news post, 29–30 Oct; member promo code shown to members only). Test data was removed on 10 Oct 2026; production now holds real data only (members: the President IMYSL26-0001, Iffah IMYSL26-0002). Public launch planned for Mon 12 Oct 2026.
 
-### Next steps, in order
+### Launch week plan (agreed 10 Oct 2026)
 
-1. [ ] **Email members about WDS APAC 2026** (Admin → Announce → Active members; text drafted in the 9 Oct session) and post the news link on LinkedIn. WDS-side checks (speaker, venue line on their booking page, promo code test, our logo on their site) are tracked in the local partnership folder.
-2. [ ] **Old Gmail inbox:** auto-reply/forward on info.damamalaysia@gmail.com → info@dama.org.my; give whoever monitored it (Eva) access to info@ in Zoho.
-3. [ ] **Board members register and pay** their membership on the website (Datin done: IMYSL26-0001). Once they have, give roles in Admin → Admins (below). Board testing is otherwise considered done. Test sign-ups now create real Member IDs; remove test accounts afterwards with `scripts/remove-accounts.ts`. When Eva and Peggy agree, give them Membership admin / Finance roles (Admin → Admins); give the Programs team (Iffah, Quak) the Events admin role.
-4. [x] **Vercel Pro** — done 10 Oct 2026 (Supabase Pro too).
-5. [x] **Wipe test data** — done 10 Oct 2026 with `scripts/remove-accounts.ts` (test accounts faiz@keppstone, faizfablillah@gmail.com, habsahnordin73+test removed; numbering restarted).
-6. [x] ~~Import existing paid members~~ — not needed: there are none (10 Oct 2026). Admin → Import stays available.
-7. [ ] **Announce the launch** (board, members, LinkedIn) and ask DAMA International to add https://dama.org.my to the chapter list (we show no website there today).
-8. [ ] Download a backup from Admin → Export after launch and monthly; keep it in DAMA's drive (not email).
+| When | What | Who |
+|---|---|---|
+| Sat 10 Oct | Board members register and pay (Datin IMYSL26-0001 and Iffah IMYSL26-0002 done). Verify each payment in Admin → Payments | Board · Faiz verifies |
+| Sat 10 Oct, as each registers | Give roles in Admin → Admins: **Peggy → Finance first** (so payment checks don't all wait on Faiz), Eva → Membership admin, Iffah and Quak → Events admin | Faiz (as admin@dama.org.my) |
+| Before Mon 12 Oct | Board agrees **when early-bird pricing (RM 150) ends**; switch to RM 350 in Admin → Settings on that date | Board |
+| Mon 12 Oct | **Public launch** (members, LinkedIn, WhatsApp) with the "How to join" deck + video. Ask DAMA International to list https://dama.org.my | Faiz / Programs |
+| Mon 12 Oct onwards | Watch Admin → Email log and Admin → Payments daily. The daily job's alert email reports any failed emails | Faiz, Peggy |
+| Tue 13 Oct | **WDS APAC 2026**: LinkedIn post + Admin → Announce → Active members (text drafted 9 Oct). Summit is 29–30 Oct | Faiz / Programs |
+| When convenient | Old Gmail: forward info.damamalaysia@gmail.com → info@dama.org.my; give Eva access to info@ in Zoho | Faiz |
+| Next | **Guide for Peggy (Finance): how to verify payments**, as a PDF + short video, same style as the "How to join" deck and video | Claude, when asked |
 
-### Later / housekeeping
+### Launch-week cautions
 
-- [ ] Delete the Entra app "DAMA website" and the `dama-website-senders` group in the keppstone tenant once Zoho has run smoothly for a week or two.
-- [ ] Replace placeholder **testimonials** — board decided (10 Oct 2026) to keep them for now and replace them with real member quotes after about 6 months (~Apr 2027). Review the older news write-ups.
-- [ ] Full-resolution **board headshots** and event photos (current ones come from the Infopack PDF).
-- [ ] **TIN** for receipts — confirm with the Treasurer/VP Finance (receipt shows ROS no. only).
-- [ ] Move Vercel / Supabase / Zoho / the domain to DAMA-owned accounts (all currently under Faiz; domain registered at YeahHost under Faiz's account).
-- [ ] Options discussed: online payment gateway (needs a merchant account in the association's name), homepage partners strip once there are 4+ partners, members-only resources/recordings library, newsletter archive.
-- Known limitations: changing tier means a new application and new Member ID; corporate organisation details are changed by emailing the chapter; the individual pricing switch is global; announcements are limited by the email plan's daily sending limit.
+- **Email sending limit (Zoho).** Zoho's official limit is a rolling **50–500 external emails per hour** per sender (it depends on sender reputation, and a new domain starts low), and bulk or burst sending is against its policy (https://www.zoho.com/mail/help/adminconsole/rates-and-limits.html). There is no separate published figure for Mail Lite. Each sign-up sends 4–5 emails over its journey, and Admin → Announce sends one email per recipient back-to-back with **no retry**. So: announce the launch through LinkedIn/WhatsApp rather than Admin → Announce; keep Announce batches under about 40 recipients per hour; check Admin → Email log for failures. If Zoho locks the account it may need a manual unlock in the Zoho admin console. If volume grows, move the website's sending to a transactional email service (keep Zoho for the human inbox) — a change to the `SMTP_*` settings plus DNS records.
+- **Sign-up limit** raised to 100 per hour per network on 10 Oct 2026 (was 20), so an event where a room shares one Wi-Fi (QR code on screen, WDS booth) isn't blocked.
+- **DNS:** some ISP resolvers (seen on Faiz's home Wi-Fi on 10 Oct) cached the old nameservers and failed to resolve dama.org.my for a day. Test from mobile data and another network before announcing. If a member reports "site can't be reached", ask them to try mobile data or 1.1.1.1 / 8.8.8.8 as DNS.
+- Optional: add dama.org.my to **Google Search Console** and submit `https://dama.org.my/sitemap.xml` (verification is a TXT record added in Vercel DNS).
+
+### Status of earlier steps
+
+- [x] Vercel Pro and Supabase Pro — 10 Oct 2026.
+- [x] Wipe test data — 10 Oct 2026 with `scripts/remove-accounts.ts`.
+- [x] ~~Import existing paid members~~ — not needed: there are none (10 Oct 2026). Admin → Import stays available.
+- Test sign-ups now create real Member IDs; remove any test accounts with `scripts/remove-accounts.ts`.
+
+### Later / housekeeping (with dates)
+
+| When | Item |
+|---|---|
+| ~17 Oct 2026 | Delete the local clean-up safety copy `web/remove-accounts-backup-2026-10-10T01-40-13-468Z.json.gz` (personal data; Supabase Pro daily backups cover us by then) |
+| ~17 Oct 2026 | Delete `C:\Users\wanmoham\.hf-tts` (offline voice tool for the video) unless more video edits are planned |
+| ~19 Oct, then monthly | Download a backup from Admin → Export into DAMA's drive (not email) |
+| ~23 Oct 2026 | If Admin → Email log shows no failures, delete the Entra app "DAMA website" and the `dama-website-senders` group in the keppstone tenant |
+| ~Apr 2027 | Replace the placeholder **testimonials** with real member quotes (board decision 10 Oct 2026); review the older news write-ups |
+| When stable | Move Vercel / Supabase / Zoho / the domain to DAMA-owned accounts (owner keeps them until the system is stable; domain at YeahHost under Faiz's account). Watch renewals: domain (YeahHost), Zoho (yearly), Vercel + Supabase (monthly, Faiz's card) |
+| Open | Full-resolution **board headshots** and event photos (current ones come from the Infopack PDF) |
+| Open | **TIN** for receipts — confirm with the Treasurer/VP Finance (receipt shows ROS no. only) |
+| Ideas | Online payment gateway (needs a merchant account in the association's name), homepage partners strip once there are 4+ partners, members-only resources/recordings library, newsletter archive |
+
+Known limitations: changing tier means a new application and new Member ID; corporate organisation details are changed by emailing the chapter; the individual pricing switch is global; announcements are limited by the email plan's sending limit (above).
 
 ### Done (history)
 
@@ -211,6 +233,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 - [x] 9 Oct — events, news, announcements, partner events built; WDS APAC 2026 published.
 - [x] 9 Oct — moved to **dama.org.my** (DNS at Vercel); GitHub Pages forwards there.
 - [x] 9 Oct — Zoho Mail (admin@, info@); website sends as "DAMA Malaysia" <info@dama.org.my>; contact address switched everywhere.
+- [x] 10 Oct — "How to join" deck + video; sign-up limit raised to 100/hour per network; Iffah IMYSL26-0002.
 - [x] 10 Oct — Supabase upgraded to Pro (checked afterwards: site, database and reconnect test all fine).
 - [x] 10 Oct — admin@dama.org.my is the production super admin (account only, no membership); test data removed; **first real member: Datin Habsah, IMYSL26-0001**, 3-year special term (10 Oct 2026 – 9 Oct 2029, RM 500), receipt MY/MEM/2026/0001.
 

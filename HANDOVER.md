@@ -15,6 +15,7 @@ This file is the single place to pick the project up again: what exists, why it 
 | Automated tests | `web/tests/` | 25 end-to-end tests (membership, security, backups/alerts, events incl. partner events, news, announcements), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 | "How to join" guide deck | https://claude.ai/artifact/HNcNP6ws4ASuVcCGWAh5h9 (private Slides artifact; share it from its Share menu) | 19 slides made 10 Oct 2026 for everyone: tiers, the six steps with desktop + phone screenshots, student and corporate extras, common questions. Screenshots come from `GUIDE=1 npx playwright test tests/guide-screens.spec.ts` (made-up people, account number masked) → `web/test-results/guide/`. |
+| Finance guide (deck + video) | Deck https://claude.ai/artifact/SQiUnmgDTV1HVz2XYYjMMK (private; Share → Export → PDF for Peggy) · video in `DAMA Media Assets/Finance guide video/` (local) | 16 slides + 71 s video for the Finance role: daily routine, matching against the AmBank statement, verify, part payment, reject, corporate and event payments, receipts, recording outside payments, exports, tricky cases. Screens from `GUIDE=1 npx playwright test tests/finance-guide-screens.spec.ts`. Made 10 Oct 2026. |
 | "How to join" explainer video | `DAMA Media Assets/How to Join video/` (local only, git-ignored) | 81 s, landscape 16:9 + vertical 9:16, Kokoro voiceover (af_heart) + captions, event photos, original music + effects, made 10 Oct 2026 with HyperFrames 0.8.77. Source and re-render steps in that folder's README.txt. Opening line says "six simple steps" (Datin asked to drop "10 minutes" because payment checks take up to 3 business days). |
 | Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 30 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, Part 5 (added 6 Oct, **board only**: comparison with the earlier vendor quotation; details in `PRIVATE-CONTEXT.md`), technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
 
@@ -190,7 +191,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 | Mon 12 Oct onwards | Watch Admin → Email log and Admin → Payments daily. The daily job's alert email reports any failed emails | Faiz, Peggy |
 | Tue 13 Oct | **WDS APAC 2026**: LinkedIn post + Admin → Announce → Active members (text drafted 9 Oct). Summit is 29–30 Oct | Faiz / Programs |
 | When convenient | Old Gmail: forward info.damamalaysia@gmail.com → info@dama.org.my; give Eva access to info@ in Zoho | Faiz |
-| Next | **Guide for Peggy (Finance): how to verify payments**, as a PDF + short video, same style as the "How to join" deck and video | Claude, when asked |
+| Done 10 Oct | **Finance guide for Peggy** (deck + video, see section 1). Send it to her with the Finance role | Faiz |
 
 ### Launch-week cautions
 

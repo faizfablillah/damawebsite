@@ -148,7 +148,7 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 | Site | **https://dama.org.my** (`APP_URL`; `CANONICAL_HOST=dama.org.my` makes `www` and `dama-malaysia.vercel.app` redirect, except `/api/*`) |
 | Domain | `dama.org.my` registered at **YeahHost** (owner: Faiz's YeahHost account); nameservers `ns1/ns2.vercel-dns.com`, so **DNS is managed in Vercel** (Vercel → Domains, or `npx vercel dns`). Old static site on GitHub Pages now forwards to dama.org.my |
 | Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
-| Database + files | Supabase project `dama-malaysia` (Singapore, ref `zzwgvnxywxclxjfyrjok`), **transaction pooler port 6543, pool of 20** (see Gotchas — the session pooler caps clients at 15), private bucket `dama-files` (S3 access key "vercel") |
+| Database + files | Supabase project `dama-malaysia` (**Pro plan since 10 Oct 2026**, Micro compute, Singapore, ref `zzwgvnxywxclxjfyrjok`), **transaction pooler port 6543, pool of 20** (see Gotchas — the session pooler caps clients at 15), private bucket `dama-files` (S3 access key "vercel") |
 | Email | **Zoho Mail** (Mail Lite, 2 users, bought 9 Oct 2026): `admin@dama.org.my` (Zoho super admin) and `info@dama.org.my` (shared public inbox). The website sends as **info@dama.org.my** over SMTP `smtppro.zoho.com:465` with an app-specific password (`SMTP_*`, `MAIL_FROM` in Vercel + `web/.env.production.local`). DNS in Vercel: MX mx/mx2/mx3.zoho.com, SPF `include:zohomail.com`, DKIM selector `zmail` (verified), DMARC `p=none` reporting to admin@. The old Microsoft Graph sender is switched off (`MS_*` removed from Vercel; kept commented locally) |
 | Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily`: statuses + renewal reminders, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
 | Secrets | git-ignored `web/.env.production.local` (all production values) + Vercel env vars (secrets marked sensitive) |
@@ -165,9 +165,9 @@ Re-running the setup or changing a setting: edit `web/.env.production.local`, up
 | Remove named accounts with everything they own (memberships, receipts, corporate organisation, uploads), keep everyone else; numbering continues after the highest number still in use | `npx tsx --env-file=.env.production.local scripts/remove-accounts.ts --remove=a@x.com,b@y.com --confirm` |
 | Restore a backup (download it from Admin → Export first) | `npx tsx --env-file=.env.production.local scripts/restore-backup.ts dama-YYYY-MM-DD.json.gz --confirm` |
 
-Backups contain database records only; uploaded files stay in the bucket. Supabase's free plan has no downloadable backups of its own, so download one from Admin → Export now and then and keep it in DAMA's drive (not email). Restore was tested end to end on 9 Oct 2026 (restored data identical to the backup).
+Backups contain database records only; uploaded files stay in the bucket. Supabase Pro also keeps its own daily backups for 7 days (Database → Backups); still download one from Admin → Export now and then and keep it in DAMA's drive (not email). Restore was tested end to end on 9 Oct 2026 (restored data identical to the backup).
 
-Estimated running cost: RM 0/month at launch; ~RM 100–200/month with Vercel Pro (+ Supabase Pro later). Board's estimate was RM 3,050/year (~20 individual members).
+Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~RM 10/month; with Vercel Pro (~USD 20/month) about RM 220/month in total. Board's estimate was RM 3,050/year (~20 individual members).
 
 ---
 
@@ -209,6 +209,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 - [x] 9 Oct — events, news, announcements, partner events built; WDS APAC 2026 published.
 - [x] 9 Oct — moved to **dama.org.my** (DNS at Vercel); GitHub Pages forwards there.
 - [x] 9 Oct — Zoho Mail (admin@, info@); website sends as "DAMA Malaysia" <info@dama.org.my>; contact address switched everywhere.
+- [x] 10 Oct — Supabase upgraded to Pro (checked afterwards: site, database and reconnect test all fine).
 - [x] 10 Oct — admin@dama.org.my is the production super admin (account only, no membership); test data removed; **first real member: Datin Habsah, IMYSL26-0001**, 3-year special term (10 Oct 2026 – 9 Oct 2029, RM 500), receipt MY/MEM/2026/0001.
 
 ---

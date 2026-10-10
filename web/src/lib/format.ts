@@ -12,10 +12,10 @@ export function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// 12-month term: 20 Aug 2026 → 19 Aug 2027
-export function termEnd(start: string): string {
+// 12-month term: 20 Aug 2026 → 19 Aug 2027 (years = 3: → 19 Aug 2029)
+export function termEnd(start: string, years = 1): string {
   const d = new Date(`${start}T00:00:00Z`);
-  const y = d.getUTCFullYear() + 1;
+  const y = d.getUTCFullYear() + years;
   const m = d.getUTCMonth();
   const day = d.getUTCDate();
   // Clamp 29 Feb → 28 Feb in non-leap years

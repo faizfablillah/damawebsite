@@ -12,6 +12,7 @@ import { orderBalance, orderTotal, seatCode } from "@/lib/membership";
 import {
   adminSeatAction,
   discountAction,
+  orderTermsAction,
   eligibilityAction,
   membershipStatusAction,
   orgDocumentAction,
@@ -37,6 +38,7 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
   const db = await getDb();
   const canMembers = can(admin.role, "members");
   const canPay = can(admin.role, "payments");
+  const canTerms = can(admin.role, "settings");
 
   const [admins, emails, auditRows, notes, docs, seatReqs] = await Promise.all([
     db.select().from(schema.users).where(inArray(schema.users.role, ADMIN_ROLES)),
@@ -252,6 +254,12 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
                   <dd>
                     {rm(order.amountPaid)} / {rm(orderBalance(order))}
                   </dd>
+                  {order.termYears > 1 && (
+                    <>
+                      <dt>Term</dt>
+                      <dd>{order.termYears} years (special arrangement)</dd>
+                    </>
+                  )}
                   <dt>Expected reference</dt>
                   <dd>{order.paymentReference}</dd>
                   {order.periodStart && (
@@ -356,6 +364,25 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
                         <Submit className="btn btn--outline btn--xs">Save discount</Submit>
                       </ActionForm>
                     </details>
+                    {canTerms && order.amountPaid === 0 && (
+                      <details className="action">
+                        <summary>Special term (board-approved, e.g. several years prepaid)</summary>
+                        <p className="muted-sm">
+                          Use only for an arrangement the board agreed. Set it before verifying the payment: the receipt and the membership end date
+                          follow it.
+                        </p>
+                        <ActionForm action={orderTermsAction.bind(null, order.id)}>
+                          <div className="form-grid">
+                            <Field name="years" label="Years" type="number" required defaultValue={String(order.termYears)} min="1" max="5" />
+                            <Field name="price" label="Price for the whole term (RM)" required defaultValue={money(order.unitPrice).replace(/,/g, "")} />
+                            <Field name="description" label="Receipt description" required defaultValue={order.description} className="full" />
+                          </div>
+                          <div>
+                            <Submit className="btn btn--outline btn--sm">Save term</Submit>
+                          </div>
+                        </ActionForm>
+                      </details>
+                    )}
                   </>
                 )}
               </section>

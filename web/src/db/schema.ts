@@ -136,6 +136,8 @@ export const orders = pgTable(
     description: text("description").notNull(),
     unitPrice: integer("unit_price").notNull(),
     discount: integer("discount").notNull().default(0),
+    // Membership length in years; 1 unless a super admin agreed a longer prepaid term
+    termYears: integer("term_years").notNull().default(1),
     amountPaid: integer("amount_paid").notNull().default(0),
     status: text("status").$type<OrderStatus>().notNull().default("awaiting_payment"),
     paymentReference: text("payment_reference").notNull(),

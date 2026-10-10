@@ -801,3 +801,43 @@ test("partner events, members-only offers and draft news", async ({ page }) => {
   await page.goto("/news/test-draft-announcement");
   await expect(page.getByText(/Draft preview/)).toBeVisible();
 });
+
+test("special term: a super admin sets 3 years for RM 500 before verifying", async ({ page }) => {
+  const EMAIL = "president@example.com";
+  await signup(page, { tier: "individual", name: "Prepaid President", email: EMAIL, state: "SL" });
+  await verifyEmail(page, EMAIL);
+  await page.goto("/portal/apply?tier=individual");
+  await page.getByLabel("Data Quality").check();
+  await page.getByLabel(/I'm applying for/).check();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await submitPayment(page, "500", "RPF-PREPAID-3Y");
+
+  await login(page, ADMIN);
+  await page.goto("/admin/payments");
+  await page.getByRole("link", { name: "Prepaid President" }).click();
+  await page.getByText("Special term").click();
+  await page.getByLabel("Years").fill("3");
+  await page.getByLabel("Price for the whole term (RM)").fill("500");
+  await page.getByLabel("Receipt description").fill("Individual Membership — 36 months (board-approved)");
+  await page.getByRole("button", { name: "Save term" }).click();
+  await expect(page.getByText("Term saved")).toBeVisible();
+  await expect(page.getByText("3 years (special arrangement)")).toBeVisible();
+
+  await page.goto("/admin/payments");
+  await page.getByRole("row", { name: /Prepaid President/ }).getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByText(/membership IMYSL\d{2}-\d{4} activated/)).toBeVisible();
+
+  // 12 months × 3 from today: e.g. 10 Oct 2026 → 9 Oct 2029, paid in full
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kuala_Lumpur" });
+  const end = new Date(`${today}T00:00:00Z`);
+  end.setUTCFullYear(end.getUTCFullYear() + 3);
+  end.setUTCDate(end.getUTCDate() - 1);
+  const endLabel = `${end.getUTCDate()} ${end.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${end.getUTCFullYear()}`;
+  const welcome = await lastMail(EMAIL, "welcome");
+  expect(welcome.text).toContain(endLabel);
+  await page.goto("/admin/payments?status=verified");
+  await page.getByRole("link", { name: "Prepaid President" }).click();
+  await expect(page.getByText("RM 500.00 / RM 0.00")).toBeVisible();
+  // The term can't be changed once paid
+  await expect(page.getByText("Special term")).toHaveCount(0);
+});

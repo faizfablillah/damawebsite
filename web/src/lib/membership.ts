@@ -270,7 +270,7 @@ async function tryActivate(tx: Tx, membershipId: string, orderId: string, graceD
   const today = todayKL();
   const continuous = o.kind === "renewal" && m.endDate && today <= addDays(m.endDate, graceDays);
   const start = continuous ? addDays(m.endDate!, 1) : today;
-  const end = termEnd(start);
+  const end = termEnd(start, o.termYears);
 
   await tx.update(schema.orders).set({ periodStart: start, periodEnd: end }).where(eq(schema.orders.id, o.id));
   await tx
@@ -487,6 +487,21 @@ export async function setOrderDiscount(orderId: string, discount: number, adminI
     if (discount < 0 || discount > o.unitPrice) throw new BusinessError("Discount must be between 0 and the unit price.");
     await tx.update(schema.orders).set({ discount }).where(eq(schema.orders.id, orderId));
     await audit(adminId, "order.discount", "order", orderId, { discount }, tx);
+  });
+}
+
+// Super admins only: a board-approved term other than 12 months (e.g. 3 years prepaid for RM 500).
+// Set before any payment is verified, so the receipt and the membership dates match the agreement.
+export async function setOrderTerms(orderId: string, input: { years: number; price: number; description: string }, adminId: string) {
+  const db = await getDb();
+  await db.transaction(async (tx) => {
+    const [o] = await tx.select().from(schema.orders).where(eq(schema.orders.id, orderId));
+    if (!o || ["paid", "cancelled"].includes(o.status) || o.amountPaid > 0)
+      throw new BusinessError("The term can only be changed before any payment on this order is verified.");
+    if (!Number.isInteger(input.years) || input.years < 1 || input.years > 5) throw new BusinessError("Years must be between 1 and 5.");
+    if (input.price < o.discount) throw new BusinessError("The price can't be lower than the discount.");
+    await tx.update(schema.orders).set({ termYears: input.years, unitPrice: input.price, description: input.description }).where(eq(schema.orders.id, orderId));
+    await audit(adminId, "order.terms", "order", orderId, { from: { years: o.termYears, price: o.unitPrice, description: o.description }, to: input }, tx);
   });
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "orders" ADD COLUMN "term_years" integer DEFAULT 1 NOT NULL;

@@ -25,6 +25,7 @@ import {
   runDailyTasks,
   setMembershipStatus,
   setOrderDiscount,
+  setOrderTerms,
   verifyPayment,
 } from "@/lib/membership";
 import { saveFile, UploadError, validateUpload } from "@/lib/storage";
@@ -109,6 +110,26 @@ export async function discountAction(orderId: string, _: FormState, data: FormDa
     return done("Discount saved.");
   } catch (e) {
     return oops(e);
+  }
+}
+
+const termsSchema = z.object({
+  years: z.coerce.number().int().min(1).max(5),
+  price: z.string().min(1),
+  description: z.string().trim().min(5).max(120),
+});
+
+export async function orderTermsAction(orderId: string, _: FormState, data: FormData): Promise<FormState> {
+  const admin = await requireAdmin("settings");
+  const parsed = termsSchema.safeParse(Object.fromEntries(data));
+  if (!parsed.success) return { error: "Enter 1–5 years, a price and a description (5–120 characters).", values: keepValues(data) };
+  const price = parseRinggit(parsed.data.price);
+  if (price === null) return { error: "Enter a valid price.", values: keepValues(data) };
+  try {
+    await setOrderTerms(orderId, { years: parsed.data.years, price, description: parsed.data.description }, admin.id);
+    return done("Term saved. Verify the payment to activate the membership for the new term.");
+  } catch (e) {
+    return oops(e, data);
   }
 }
 

@@ -15,8 +15,9 @@ export const LIMITS = {
   // Password-reset emails
   resetPerEmail: { max: 3, minutes: 60 },
   resetPerIp: { max: 10, minutes: 60 },
-  // Sign-up attempts (successful or not) from one network address
-  signupPerIp: { max: 20, minutes: 60 },
+  // Sign-up attempts (successful or not) from one network address. High enough for an event where a room
+  // shares one Wi-Fi (e.g. a QR code on screen), low enough to stop scripted mass sign-ups
+  signupPerIp: { max: 100, minutes: 60 },
 } as const;
 
 export async function clientIp(): Promise<string> {

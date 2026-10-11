@@ -151,7 +151,10 @@ test("individual part-pays, then pays the balance and is activated", async ({ pa
   if (Date.now() < Date.parse("2026-12-31T16:00:00Z")) {
     await expect(page.locator(".member-card .pioneer-mark")).toHaveText("Pioneer Member");
     await page.goto("/join");
-    await expect(page.getByRole("heading", { name: /become a Pioneer Member/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /first 250 Pioneer Members/ })).toBeVisible();
+    const spots = await (await page.request.get("/api/public/pioneer")).json();
+    expect(spots.open).toBe(true);
+    expect(spots.spotsLeft).toBeLessThan(250);
     await login(page, ADMIN);
     await page.goto("/admin/members?pioneer=1");
     await expect(page.getByRole("row", { name: /Ravi Kumar/ })).toContainText("Pioneer");

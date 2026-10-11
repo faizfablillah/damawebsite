@@ -8,7 +8,7 @@ import { requireVerifiedUser } from "@/lib/auth";
 import { stateName, TIERS } from "@/lib/config";
 import { fmtDate } from "@/lib/format";
 import { loadMembership } from "@/lib/queries";
-import { isPioneer } from "@/lib/pioneer";
+import { pioneerStatus } from "@/lib/pioneer";
 import { seatCode } from "@/lib/membership";
 import { assignSeatAction } from "../../actions";
 import { Flash } from "@/components/flash";
@@ -21,6 +21,7 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
   const b = await loadMembership(membershipId);
   if (!b || !b.organisation || b.organisation.contactUserId !== user.id) notFound();
   const m = b.membership;
+  const pioneer = (await pioneerStatus()).pioneers.has(m.id);
   const org = b.organisation;
   const db = await getDb();
   const requests = b.seats.length
@@ -102,7 +103,7 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
                 <div className="panel-head">
                   <h2>Membership</h2>
                   <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {isPioneer(b) && <span className="badge badge--pioneer">Pioneer Member</span>}
+                    {pioneer && <span className="badge badge--pioneer">Pioneer Member</span>}
                     <MembershipBadge status={m.status} />
                   </span>
                 </div>

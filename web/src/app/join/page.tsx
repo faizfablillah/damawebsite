@@ -3,7 +3,7 @@ import { AppHero } from "@/components/ui";
 import { getSettings } from "@/lib/settings";
 import { rmShort } from "@/lib/format";
 import { getCurrentUser } from "@/lib/auth";
-import { pioneerOfferOpen } from "@/lib/pioneer";
+import { pioneerStatus } from "@/lib/pioneer";
 
 export const metadata = { title: "Join DAMA" };
 
@@ -11,7 +11,7 @@ export default async function JoinPage() {
   const s = await getSettings();
   const user = await getCurrentUser();
   const href = (tier: string) => (user ? `/portal/apply?tier=${tier}` : `/signup?tier=${tier}`);
-  const pioneerOffer = pioneerOfferOpen();
+  const pioneer = await pioneerStatus();
   const ind = s.individualPricing === "early_bird" ? s.prices.IND_EB : s.prices.IND_STD;
   return (
     <>
@@ -61,12 +61,20 @@ export default async function JoinPage() {
               <span className="btn btn--primary btn--sm">Register your organisation</span>
             </Link>
           </div>
-          {pioneerOffer && (
+          {pioneer.open && (
             <div className="pioneer-banner">
               <div>
-                <p className="pioneer-banner__eyebrow">&#9733; Pioneer Members</p>
-                <h3>Sign up and pay by 31&nbsp;December&nbsp;2026 to become a Pioneer Member</h3>
-                <p className="pioneer-banner__note">For everyone who joins by then, including members who have already joined.</p>
+                <p className="pioneer-banner__eyebrow">&#9733; Pioneer Members &middot; only 250 spots</p>
+                <h3>Be one of our first 250 Pioneer Members</h3>
+                <p className="pioneer-banner__note">
+                  Sign up and pay by 31&nbsp;December&nbsp;2026. The offer closes when all 250 spots are taken or on 31&nbsp;December, whichever comes first. Members who have
+                  already joined are included.
+                </p>
+                {pioneer.spotsLeft <= 100 && (
+                  <p className="pioneer-banner__left">
+                    Only {pioneer.spotsLeft} {pioneer.spotsLeft === 1 ? "spot" : "spots"} left
+                  </p>
+                )}
               </div>
               <ul>
                 <li>Priority registration for our first CDMP study group, once the cohort is confirmed</li>

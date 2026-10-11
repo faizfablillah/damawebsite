@@ -6,7 +6,7 @@ import { daysBetween, fmtDate, fmtEventWhen, rm, todayKL } from "@/lib/format";
 import { myEventRegistrations } from "@/lib/events";
 import { membershipsForUser, openOrder, type MembershipBundle } from "@/lib/queries";
 import { orderBalance, seatCode } from "@/lib/membership";
-import { isPioneer } from "@/lib/pioneer";
+import { pioneerStatus } from "@/lib/pioneer";
 import { renewAction } from "./actions";
 
 export const metadata = { title: "My membership" };
@@ -118,7 +118,7 @@ function History({ b }: { b: MembershipBundle }) {
   );
 }
 
-function PersonalMembership({ b, name }: { b: MembershipBundle; name: string }) {
+function PersonalMembership({ b, name, pioneer }: { b: MembershipBundle; name: string; pioneer: boolean }) {
   const m = b.membership;
   const tier = TIERS[m.tier];
   const live = ["active", "grace", "expired"].includes(m.status) && m.memberCode;
@@ -130,7 +130,7 @@ function PersonalMembership({ b, name }: { b: MembershipBundle; name: string }) 
             <div className="tier">
               {CATEGORY_LABEL[m.category]} member · {tier.label}
             </div>
-            {isPioneer(b) && <span className="pioneer-mark">Pioneer Member</span>}
+            {pioneer && <span className="pioneer-mark">Pioneer Member</span>}
           </div>
           <div className="code">{m.memberCode}</div>
           <div className="name">{name}</div>
@@ -175,7 +175,7 @@ function PersonalMembership({ b, name }: { b: MembershipBundle; name: string }) 
   );
 }
 
-function CorporateMembership({ b }: { b: MembershipBundle }) {
+function CorporateMembership({ b, pioneer }: { b: MembershipBundle; pioneer: boolean }) {
   const m = b.membership;
   const org = b.organisation!;
   const filled = b.seats.filter((s) => s.email).length;
@@ -184,7 +184,7 @@ function CorporateMembership({ b }: { b: MembershipBundle }) {
       <div className="panel-head">
         <h2>{org.name}</h2>
         <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {isPioneer(b) && <span className="badge badge--pioneer">Pioneer Member</span>}
+          {pioneer && <span className="badge badge--pioneer">Pioneer Member</span>}
           <MembershipBadge status={m.status} />
         </span>
       </div>
@@ -234,7 +234,7 @@ function CorporateMembership({ b }: { b: MembershipBundle }) {
 export default async function PortalPage({ searchParams }: PageProps<"/portal">) {
   const user = await requireVerifiedUser("/portal");
   const sp = await searchParams;
-  const [{ bundles, heldSeats }, myEvents] = await Promise.all([membershipsForUser(user), myEventRegistrations(user.id)]);
+  const [{ bundles, heldSeats }, myEvents, { pioneers }] = await Promise.all([membershipsForUser(user), myEventRegistrations(user.id), pioneerStatus()]);
   const personal = bundles.filter((b) => b.membership.category !== "C" && !["cancelled"].includes(b.membership.status));
   const corporate = bundles.filter((b) => b.membership.category === "C" && b.membership.status !== "cancelled");
   const hasPersonal = personal.some((b) => b.membership.status !== "rejected");
@@ -253,10 +253,10 @@ export default async function PortalPage({ searchParams }: PageProps<"/portal">)
           <div className="split-2">
             <div>
               {personal.map((b) => (
-                <PersonalMembership key={b.membership.id} b={b} name={user.name} />
+                <PersonalMembership key={b.membership.id} b={b} name={user.name} pioneer={pioneers.has(b.membership.id)} />
               ))}
               {corporate.map((b) => (
-                <CorporateMembership key={b.membership.id} b={b} />
+                <CorporateMembership key={b.membership.id} b={b} pioneer={pioneers.has(b.membership.id)} />
               ))}
               {heldSeats.map(({ seat, membership, organisation }) => (
                 <section className="panel panel--accent" key={seat.id}>

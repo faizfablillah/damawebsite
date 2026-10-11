@@ -118,6 +118,20 @@
     if (Date.now() >= Date.parse(el.getAttribute("data-until"))) el.remove();
   });
 
+  // Pioneer offer: hide when all spots are taken; show "Only N spots left" near the end
+  var pioneer = document.querySelector("[data-pioneer]");
+  if (pioneer && window.fetch) {
+    fetch("/api/public/pioneer")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        if (!d.open) { pioneer.remove(); return; }
+        var left = pioneer.querySelector("[data-pioneer-left]");
+        if (left && d.spotsLeft <= 100) { left.textContent = "Only " + d.spotsLeft + (d.spotsLeft === 1 ? " spot" : " spots") + " left"; left.hidden = false; }
+      })
+      .catch(function () {});
+  }
+
   // Footer year
   document.querySelectorAll("[data-year]").forEach(function (el) { el.textContent = new Date().getFullYear(); });
 })();

@@ -3,10 +3,11 @@ import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, ne, sql } from "drizz
 import { getDb, schema, type Tx } from "@/db";
 import type { Event, EventRegistration, EventRegistrationStatus, ReceiptSnapshot, User } from "@/db/schema";
 import { APP_URL } from "./config";
-import { addDays, fmtEventWhen, rm, todayKL } from "./format";
+import { addDays, fmtDate, fmtEventWhen, rm, todayKL } from "./format";
 import { getSettings } from "./settings";
 import { audit } from "./audit";
 import { sendEmail, templates } from "./email";
+import { notifyStaff } from "./admin-notify";
 import { receiptPdf } from "./receipt-pdf";
 import { membershipsForUser } from "./queries";
 import { BusinessError, nextCounter, seatCode } from "./membership";
@@ -205,9 +206,23 @@ export async function submitEventPayment(input: { registrationId: string; userId
       .returning();
     await tx.update(schema.eventRegistrations).set({ status: "payment_review" }).where(eq(schema.eventRegistrations.id, r.id));
     await audit(input.userId, "event.payment_submitted", "event", r.eventId, { paymentId: p.id, amount: input.amount }, tx);
-    return { r, p };
+    const [e] = await tx.select().from(schema.events).where(eq(schema.events.id, r.eventId));
+    return { r, p, e };
   });
   await sendEmail(res.r.email, "paymentSubmitted", templates.paymentSubmitted(res.r.name, rm(input.amount)), { userId: res.r.userId });
+  await notifyStaff(
+    "payments",
+    `Event payment to verify: ${rm(input.amount)} from ${res.r.name}`,
+    [
+      ["From", `${res.r.name} (${res.r.email})`],
+      ["Event", res.e.title],
+      ["Amount", `${rm(input.amount)} of ${rm(res.r.amount)} (${res.r.rate === "member" ? "member" : "non-member"} price)`],
+      ["Transfer date", fmtDate(input.paymentDate)],
+      ["Bank reference", input.reference],
+      ["Expected reference", res.r.paymentReference],
+    ],
+    "/admin/payments",
+  );
 }
 
 export async function verifyEventPayment(paymentId: string, adminId: string, amountReceived: number) {

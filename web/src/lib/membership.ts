@@ -7,6 +7,7 @@ import { addDays, daysBetween, fmtDate, rm, termEnd, todayKL } from "./format";
 import { getSettings, priceFor } from "./settings";
 import { audit } from "./audit";
 import { sendEmail, templates } from "./email";
+import { notifyStaff } from "./admin-notify";
 import { receiptPdf } from "./receipt-pdf";
 import { pruneAttempts } from "./rate-limit";
 
@@ -181,6 +182,33 @@ export async function createApplication(input: ApplicationInput) {
       links,
     );
   }
+  if (tier.category === "E") {
+    await notifyStaff(
+      "members",
+      `Student check: ${input.user.name}`,
+      [
+        ["Name", input.user.name],
+        ["Email", input.user.email],
+        ["Institution", input.institution ?? input.user.organisation],
+        ["Graduation year", input.graduationYear ? String(input.graduationYear) : null],
+      ],
+      `/admin/members/${result.membership.id}`,
+    );
+  } else if (tier.category === "C" && input.organisation?.wantsCall) {
+    const org = input.organisation;
+    await notifyStaff(
+      "members",
+      `New corporate lead: ${org.name}`,
+      [
+        ["Organisation", org.name],
+        ["Contact", org.contactName],
+        ["Email", org.contactEmail],
+        ["Phone", org.contactPhone],
+        ["Tier of interest", tier.label],
+      ],
+      `/admin/members/${result.membership.id}`,
+    );
+  }
   return result;
 }
 
@@ -247,13 +275,27 @@ export async function submitPayment(input: {
     await tx.update(schema.orders).set({ status: "pending_verification" }).where(eq(schema.orders.id, o.id));
     await setPipeline(tx, m.organisationId, "payment_review", ["new_lead", "pic_contacted", "invoice_sent", "pending_payment"]);
     await audit(input.userId, "payment.submitted", "payment", p.id, { amount: input.amount }, tx);
-    return { payment: p, membership: m, owner };
+    return { payment: p, membership: m, owner, order: o };
   });
   await sendEmail(res.owner.email, "paymentSubmitted", templates.paymentSubmitted(res.owner.name, rm(input.amount)), {
     userId: res.owner.userId,
     membershipId: res.membership.id,
     organisationId: res.membership.organisationId,
   });
+  const payer = res.owner.organisation?.name ?? res.owner.name;
+  await notifyStaff(
+    "payments",
+    `Payment to verify: ${rm(input.amount)} from ${payer}`,
+    [
+      ["From", res.owner.organisation ? `${payer} (${res.owner.name})` : payer],
+      ["For", `${CATEGORY_LABEL[res.membership.category]} — ${TIERS[res.membership.tier].label}${res.order.kind === "renewal" ? " (renewal)" : ""}`],
+      ["Amount", `${rm(input.amount)} of ${rm(orderBalance(res.order))} due`],
+      ["Transfer date", fmtDate(input.paymentDate)],
+      ["Bank reference", input.reference],
+      ["Expected reference", res.order.paymentReference],
+    ],
+    "/admin/payments",
+  );
   return res.payment;
 }
 
@@ -596,7 +638,7 @@ export async function assignSeat(input: { seatId: string; actorId: string; asAdm
         .values({ seatId: seat.id, requestedBy: input.actorId, name: input.name, jobTitle: input.jobTitle, email, phone: input.phone, reason: input.reason ?? null })
         .returning();
       await audit(input.actorId, "seat.change_requested", "seat", seat.id, { requestId: req.id }, tx);
-      return { kind: "requested" as const };
+      return { kind: "requested" as const, org, from: seat.email };
     }
     await tx
       .update(schema.seats)
@@ -608,6 +650,18 @@ export async function assignSeat(input: { seatId: string; actorId: string; asAdm
   });
   if (res.kind === "assigned") {
     await sendEmail(input.email, "seatInvite", templates.seatInvite(input.name, res.org.name, res.code), { membershipId: res.m.id, organisationId: res.org.id });
+  } else {
+    await notifyStaff(
+      "members",
+      `Seat change request: ${res.org.name}`,
+      [
+        ["Organisation", res.org.name],
+        ["Replace", res.from],
+        ["With", `${input.name} (${input.email.toLowerCase()})`],
+        ["Reason", input.reason],
+      ],
+      "/admin/corporate#seat-requests",
+    );
   }
   return res.kind;
 }

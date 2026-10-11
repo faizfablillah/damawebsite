@@ -94,6 +94,21 @@ export const templates = {
       ["The daily check of the membership system found:", problems.map((x) => `• ${esc(x)}`).join("<br>"), "Members can still use the site unless it says otherwise. Check Admin → Email log, or the Vercel logs, for details."],
       { label: "Open the admin", url: `${APP_URL}/admin` },
     ),
+  staffNotice: (title: string, details: [string, string][], url: string) =>
+    mail(title, [details.map(([k, v]) => `<strong>${esc(k)}:</strong> ${esc(v)}`).join("<br>"), "You're receiving this because your admin role covers this work."], { label: "Open in admin", url }),
+  staffDigest: (items: number, blocks: { heading: string; lines: string[]; more: number; url: string }[], asOf: string) =>
+    mail(
+      `DAMA admin: ${items} item${items === 1 ? "" : "s"} waiting for you`,
+      [
+        `Still waiting as of ${esc(asOf)}:`,
+        ...blocks.map(
+          (b) =>
+            `<strong><a href="${b.url}" style="color:#007b80">${esc(b.heading)}</a></strong><br>${b.lines.map((l) => `• ${esc(l)}`).join("<br>")}${b.more ? `<br>…and ${b.more} more` : ""}`,
+        ),
+        "You're receiving this because your admin role covers this work. It isn't sent on days when nothing is waiting.",
+      ],
+      { label: "Open the admin", url: `${APP_URL}/admin` },
+    ),
   // next: a page on this site to continue to afterwards (e.g. the event they were registering for)
   verifyEmail: (name: string, token: string, next?: string | null) =>
     mail("Confirm your email address", [`Hi ${esc(name)},`, "Thanks for signing up with DAMA Kuala Lumpur &amp; Selangor. Please confirm your email address to continue.", "This link expires in 72 hours."], {

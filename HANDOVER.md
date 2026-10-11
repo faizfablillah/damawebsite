@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 10 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 11 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -12,7 +12,7 @@ This file is the single place to pick the project up again: what exists, why it 
 |---|---|---|
 | Old static website v1 | `docs/` → https://faizfablillah.github.io/damawebsite/ | **Retired**: every page now forwards to https://dama.org.my. |
 | Website + membership system | `web/` (Next.js app) | **Live for board testing** at **https://dama.org.my** (since 9 Oct 2026; `www.dama.org.my` and the old https://dama-malaysia.vercel.app redirect there) (Vercel Hobby + Supabase, Singapore). Every push to `main` redeploys. Runs locally with `npm run dev`. |
-| Automated tests | `web/tests/` | 25 end-to-end tests (membership, security, backups/alerts, events incl. partner events, news, announcements), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
+| Automated tests | `web/tests/` | 26 end-to-end tests (membership, security, backups/alerts, admin notifications, events incl. partner events, news, announcements), all passing on dev and production builds. `SCREENS=1` also saves desktop + phone screenshots of every page in `web/test-results/screens/` for visual review. |
 | Repository | https://github.com/faizfablillah/damawebsite (public) | Branch `main`. |
 | "How to join" guide deck | https://claude.ai/artifact/HNcNP6ws4ASuVcCGWAh5h9 (private Slides artifact; share it from its Share menu) | 19 slides made 10 Oct 2026 for everyone: tiers, the six steps with desktop + phone screenshots, student and corporate extras, common questions. Screenshots come from `GUIDE=1 npx playwright test tests/guide-screens.spec.ts` (made-up people, account number masked) → `web/test-results/guide/`. |
 | Membership admin guide (deck + video) | Deck https://claude.ai/artifact/PhMVNwSx3tMRqU7GJyJNbD · video in `DAMA Media Assets/Membership admin guide video/` (local) | 16 slides + 86 s video: dashboard routine, student eligibility, member search and actions, corporate pipeline and leads, seat changes, renewals, Announce (Zoho limit), exports, common member questions. Made 10 Oct 2026. |
@@ -116,6 +116,8 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 
 **Admin (`/admin`):** Dashboard (sign-ups today by tier, payments to verify, student checks, corporate leads, seat requests, renewals due, active totals, recent activity) · Payments (verify with actual amount → part payment if less; reject with reason; record offline payment; discount; special term — super admins) · Students / Individuals / All members (search, filters, full record) · Corporate (pipeline: New lead → PIC contacted → Invoice sent → Pending payment → Payment review → Pending user list → Active; assign PIC, notes, upload proposals/invoices, manage seats, approve swaps) · Renewals · Email log · Export (members, payments, seats as CSV) · Import · Settings (prices, bank details, grace, reminders) · Admins (roles) · Audit trail.
 
+**Admin notifications (added 11 Oct 2026, `src/lib/admin-notify.ts`):** admins get an email as each item arrives (membership or event payment to verify → Finance + super admins; student check, new corporate lead, seat change request → Membership admins + super admins), each with the details and a link to the right admin page, plus a 9 am "N items waiting for you" summary from the daily job (only the sections their role covers; not sent when nothing waits). Recipients follow roles in Admin → Admins, so Peggy starts getting payment emails as soon as she has the Finance role. Events admins get none.
+
 **Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export, announcements), Finance (payments incl. event payments, receipts, export), **Events admin** (events and attendees only — no member records or payments). First super admin = an account whose email is in `SUPER_ADMIN_EMAILS`, granted only after the email is confirmed and only while no super admin exists (so production ignores it now; add further admins in Admin → Admins). Super admins can also **disable** an account there (signs it out everywhere, blocks login and password reset).
 
 ---
@@ -158,7 +160,7 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 | Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
 | Database + files | Supabase project `dama-malaysia` (**Pro plan since 10 Oct 2026**, Micro compute, Singapore, ref `zzwgvnxywxclxjfyrjok`), **transaction pooler port 6543, pool of 20** (see Gotchas — the session pooler caps clients at 15), private bucket `dama-files` (S3 access key "vercel") |
 | Email | **Zoho Mail** (Mail Lite, 2 users, bought 9 Oct 2026): `admin@dama.org.my` (Zoho super admin) and `info@dama.org.my` (shared public inbox). The website sends as **info@dama.org.my** over SMTP `smtppro.zoho.com:465` with an app-specific password (`SMTP_*`, `MAIL_FROM` in Vercel + `web/.env.production.local`). DNS in Vercel: MX mx/mx2/mx3.zoho.com, SPF `include:zohomail.com`, DKIM selector `zmail` (verified), DMARC `p=none` reporting to admin@. The old Microsoft Graph sender is switched off (`MS_*` removed from Vercel; kept commented locally) |
-| Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily`: statuses + renewal reminders, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
+| Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily`: statuses + renewal reminders, event reminders, the admins' "waiting for you" summary, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
 | Secrets | git-ignored `web/.env.production.local` (all production values) + Vercel env vars (secrets marked sensitive) |
 
 Re-running the setup or changing a setting: edit `web/.env.production.local`, update the variable in Vercel (`npx vercel env add NAME production`), redeploy. Never paste secrets in chat — log in with `! npx vercel login`, `! az login`, or put values in the git-ignored files.
@@ -201,6 +203,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 ### Launch-week cautions
 
 - **Email sending limit (Zoho).** Zoho's official limit is a rolling **50–500 external emails per hour** per sender (it depends on sender reputation, and a new domain starts low), and bulk or burst sending is against its policy (https://www.zoho.com/mail/help/adminconsole/rates-and-limits.html). There is no separate published figure for Mail Lite. Each sign-up sends 4–5 emails over its journey, and Admin → Announce sends one email per recipient back-to-back with **no retry**. So: announce the launch through LinkedIn/WhatsApp rather than Admin → Announce; keep Announce batches under about 40 recipients per hour; check Admin → Email log for failures. If Zoho locks the account it may need a manual unlock in the Zoho admin console. If volume grows, move the website's sending to a transactional email service (keep Zoho for the human inbox) — a change to the `SMTP_*` settings plus DNS records.
+- **Admin emails add to the sending volume:** about one email per payment, student application, lead or seat request for each admin with that role, plus one summary per admin each morning. Fine at launch volumes.
 - **Sign-up limit** raised to 100 per hour per network on 10 Oct 2026 (was 20), so an event where a room shares one Wi-Fi (QR code on screen, WDS booth) isn't blocked.
 - **DNS:** some ISP resolvers (seen on Faiz's home Wi-Fi on 10 Oct) cached the old nameservers and failed to resolve dama.org.my for a day. Test from mobile data and another network before announcing. If a member reports "site can't be reached", ask them to try mobile data or 1.1.1.1 / 8.8.8.8 as DNS.
 - **Google Search Console:** domain property dama.org.my, verified by a `google-site-verification=…` TXT record added in Vercel DNS on 10 Oct 2026 (keep that record, or verification lapses). Sitemap to submit: `https://dama.org.my/sitemap.xml`.
@@ -241,6 +244,7 @@ Known limitations: changing tier means a new application and new Member ID; corp
 - [x] 9 Oct — Zoho Mail (admin@, info@); website sends as "DAMA Malaysia" <info@dama.org.my>; contact address switched everywhere.
 - [x] 10 Oct — "How to join" deck + video; sign-up limit raised to 100/hour per network; Iffah IMYSL26-0002.
 - [x] 10 Oct — Supabase upgraded to Pro (checked afterwards: site, database and reconnect test all fine).
+- [x] 11 Oct — admin notification emails (each payment / student check / lead / seat request) and the 9 am "waiting for you" summary; go to admin@ now, and to Finance / Membership admins once roles are given.
 - [x] 10 Oct — admin@dama.org.my is the production super admin (account only, no membership); test data removed; **first real member: Datin Habsah, IMYSL26-0001**, 3-year special term (10 Oct 2026 – 9 Oct 2029, RM 500), receipt MY/MEM/2026/0001.
 
 ---

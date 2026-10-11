@@ -5,8 +5,9 @@ import { createBackup } from "./backup";
 import { sendEmail, templates } from "./email";
 import { runDailyTasks } from "./membership";
 import { sendEventReminders } from "./events";
+import { sendStaffDigest } from "./admin-notify";
 
-// The scheduled daily run: statuses and renewal reminders, the nightly backup, then a health check.
+// The scheduled daily run: statuses and renewal reminders, the admins' "waiting for you" summary, the nightly backup, then a health check.
 // Any problem is emailed to ALERT_EMAILS (comma-separated) or, if unset, to every super admin.
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
 
@@ -14,6 +15,7 @@ export async function runDailyJob(opts: { testAlert?: boolean } = {}) {
   const problems: string[] = [];
   let reminders: number | null = null;
   let eventReminders: number | null = null;
+  let staffDigests: number | null = null;
   let backup: Awaited<ReturnType<typeof createBackup>> | null = null;
   try {
     reminders = (await runDailyTasks()).sent;
@@ -24,6 +26,11 @@ export async function runDailyJob(opts: { testAlert?: boolean } = {}) {
     eventReminders = await sendEventReminders();
   } catch (e) {
     problems.push(`Event reminders failed: ${errText(e)}`);
+  }
+  try {
+    staffDigests = await sendStaffDigest();
+  } catch (e) {
+    problems.push(`The admins' morning summary failed: ${errText(e)}`);
   }
   try {
     backup = await createBackup();
@@ -46,7 +53,7 @@ export async function runDailyJob(opts: { testAlert?: boolean } = {}) {
       if (await sendEmail(to, "adminAlert", templates.adminAlert(problems))) alerted++;
     }
   }
-  return { reminders, eventReminders, backup: backup && { key: backup.key, bytes: backup.bytes, removed: backup.removed }, problems, alerted };
+  return { reminders, eventReminders, staffDigests, backup: backup && { key: backup.key, bytes: backup.bytes, removed: backup.removed }, problems, alerted };
 }
 
 async function alertRecipients() {

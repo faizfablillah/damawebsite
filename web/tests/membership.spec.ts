@@ -59,6 +59,20 @@ test("student applies, pays, is verified and approved", async ({ page }) => {
   await submitPayment(page, "25", "AMB-STU-001");
   await expect(page.getByText("Payment under review")).toBeVisible();
 
+  // The super admin is told about the student check and the payment as each arrives…
+  const notices = mails(ADMIN, "staffNotice");
+  expect(notices.map((m) => m.subject)).toEqual(["Student check: Aina Student", "Payment to verify: RM 25.00 from Aina Student"]);
+  expect(notices[1].text).toContain("AMB-STU-001");
+  expect(notices[1].text).toContain("DAMA MBRP EDU Aina Student");
+  expect(linkIn(notices[1])).toBe("/admin/payments");
+  // …and the morning summary lists what is still waiting
+  const daily = await page.request.get("/api/cron/daily", { headers: { Authorization: "Bearer test-cron-secret" } });
+  expect((await daily.json()).staffDigests).toBe(1);
+  const digest = await lastMail(ADMIN, "staffDigest");
+  expect(digest.subject).toBe("DAMA admin: 2 items waiting for you");
+  expect(digest.text).toContain("Membership payments to verify (1)");
+  expect(digest.text).toContain("Student checks (1)");
+
   // Admin verifies payment, then approves eligibility
   await login(page, ADMIN);
   await page.goto("/admin/payments");
@@ -191,6 +205,9 @@ test("corporate pays, gets seats, assigns and swaps a seat", async ({ page }) =>
   await filled.getByLabel("Reason for change").fill("Lee Wei has left the company");
   await filled.getByRole("button", { name: "Send request" }).click();
   await expect(page.getByText("seat change request has been sent")).toBeVisible();
+  const seatNotice = await lastMail(ADMIN, "staffNotice");
+  expect(seatNotice.subject).toBe("Seat change request: Acme Data Sdn Bhd");
+  expect(seatNotice.text).toContain("Lee Wei has left the company");
 
   await login(page, ADMIN);
   await page.goto("/admin/corporate");
@@ -222,6 +239,9 @@ test("corporate 'talk to us first' creates a lead for the PIC", async ({ page })
   await page.getByRole("button", { name: "Submit application" }).click();
   await expect(page.getByText("PIC will reach out within 3–5 business days").first()).toBeVisible();
   await lastMail(LEAD, "corporateLead");
+  const leadNotice = await lastMail(ADMIN, "staffNotice");
+  expect(leadNotice.subject).toBe("New corporate lead: LeadCo Berhad");
+  expect(leadNotice.text).toContain(LEAD);
 
   await login(page, ADMIN);
   await page.goto("/admin/corporate?status=new_lead");
@@ -625,6 +645,13 @@ test("events: paid registration, payment check and receipt", async ({ page }) =>
   expect((await lastMail(EVENTS_ADMIN, "eventPaymentNeeded")).text).toContain("RM 120.00");
   await submitPayment(page, "120", "EVT-BANK-1");
   await expect(page.getByText("Payment under review")).toBeVisible();
+  // Finance (Ravi) and the super admin are told; the events admin role doesn't cover payments
+  for (const to of [INDIVIDUAL, ADMIN]) {
+    const notice = await lastMail(to, "staffNotice");
+    expect(notice.subject).toBe("Event payment to verify: RM 120.00 from Late Admin");
+    expect(notice.text).toContain("Data Governance Workshop");
+  }
+  expect(mails(EVENTS_ADMIN, "staffNotice")).toHaveLength(0);
 
   // A corporate seat holder gets the member price
   await login(page, SEAT_HOLDER);

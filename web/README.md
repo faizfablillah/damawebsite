@@ -20,6 +20,7 @@ One Next.js app that serves:
 - Member ID = category (E/I/C) + `MY` + state code + 2-digit year first joined + running number per category per year.
 - Receipt numbers: `MY/MEM/YYYY/NNNN`. Receipts follow the VP Finance layout, no logo, SST 0%, “not an LHDN e-Invoice”.
 - Renewal reminders are emailed 30, 14 and 7 days before expiry, at the start of grace and on expiry (daily job).
+- Admins are emailed as each payment, student check, corporate lead or seat request arrives, and get a 9 am summary of what is still waiting (daily job). Who gets what follows their role (`src/lib/admin-notify.ts`).
 - Prices, early-bird vs standard individual pricing, bank details, grace days and reminder days are edited in **Admin → Settings**.
 
 Admin roles: **Super admin** (everything), **Membership admin** (approvals, members, corporate, seats, announcements), **Finance** (payments incl. event payments, receipts, exports), **Events admin** (events and attendees only). The first super admin is whoever signs up and confirms an email listed in `SUPER_ADMIN_EMAILS` (only while no super admin exists; after that, manage roles in Admin → Admins).

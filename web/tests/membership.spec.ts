@@ -146,6 +146,20 @@ test("individual part-pays, then pays the balance and is activated", async ({ pa
   await login(page, INDIVIDUAL);
   await expect(page.getByText(`IMYKL${yy}-0001`)).toBeVisible();
   await expect(page.getByRole("link", { name: /MY\/MEM\// })).toHaveCount(2);
+
+  // Paid before the Pioneer cutoff (31 Dec 2026, MYT): card, admin list and export say so
+  if (Date.now() < Date.parse("2026-12-31T16:00:00Z")) {
+    await expect(page.locator(".member-card .pioneer-mark")).toHaveText("Pioneer Member");
+    await page.goto("/join");
+    await expect(page.getByRole("heading", { name: /become a Pioneer Member/ })).toBeVisible();
+    await login(page, ADMIN);
+    await page.goto("/admin/members?pioneer=1");
+    await expect(page.getByRole("row", { name: /Ravi Kumar/ })).toContainText("Pioneer");
+    const csv = await (await page.request.get("/admin/export/members")).text();
+    const lines = csv.split(/\r?\n/);
+    expect(lines[0]).toContain("pioneer_member");
+    expect(lines.find((l) => l.includes("Ravi Kumar"))).toMatch(/,yes$/);
+  }
 });
 
 test("payment proof can be rejected and resubmitted", async ({ page }) => {

@@ -6,6 +6,7 @@ import { daysBetween, fmtDate, fmtEventWhen, rm, todayKL } from "@/lib/format";
 import { myEventRegistrations } from "@/lib/events";
 import { membershipsForUser, openOrder, type MembershipBundle } from "@/lib/queries";
 import { orderBalance, seatCode } from "@/lib/membership";
+import { isPioneer } from "@/lib/pioneer";
 import { renewAction } from "./actions";
 
 export const metadata = { title: "My membership" };
@@ -125,8 +126,11 @@ function PersonalMembership({ b, name }: { b: MembershipBundle; name: string }) 
     <section className="panel">
       {live ? (
         <div className="member-card">
-          <div className="tier">
-            {CATEGORY_LABEL[m.category]} member · {tier.label}
+          <div className="card-top">
+            <div className="tier">
+              {CATEGORY_LABEL[m.category]} member · {tier.label}
+            </div>
+            {isPioneer(b) && <span className="pioneer-mark">Pioneer Member</span>}
           </div>
           <div className="code">{m.memberCode}</div>
           <div className="name">{name}</div>
@@ -179,7 +183,10 @@ function CorporateMembership({ b }: { b: MembershipBundle }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{org.name}</h2>
-        <MembershipBadge status={m.status} />
+        <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {isPioneer(b) && <span className="badge badge--pioneer">Pioneer Member</span>}
+          <MembershipBadge status={m.status} />
+        </span>
       </div>
       <dl className="kv">
         <dt>Tier</dt>

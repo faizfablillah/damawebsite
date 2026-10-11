@@ -3,6 +3,7 @@ import { AppHero } from "@/components/ui";
 import { getSettings } from "@/lib/settings";
 import { rmShort } from "@/lib/format";
 import { getCurrentUser } from "@/lib/auth";
+import { pioneerOfferOpen } from "@/lib/pioneer";
 
 export const metadata = { title: "Join DAMA" };
 
@@ -10,6 +11,7 @@ export default async function JoinPage() {
   const s = await getSettings();
   const user = await getCurrentUser();
   const href = (tier: string) => (user ? `/portal/apply?tier=${tier}` : `/signup?tier=${tier}`);
+  const pioneerOffer = pioneerOfferOpen();
   const ind = s.individualPricing === "early_bird" ? s.prices.IND_EB : s.prices.IND_STD;
   return (
     <>
@@ -59,6 +61,20 @@ export default async function JoinPage() {
               <span className="btn btn--primary btn--sm">Register your organisation</span>
             </Link>
           </div>
+          {pioneerOffer && (
+            <div className="pioneer-banner">
+              <div>
+                <p className="pioneer-banner__eyebrow">&#9733; Pioneer Members</p>
+                <h3>Sign up and pay by 31&nbsp;December&nbsp;2026 to become a Pioneer Member</h3>
+                <p className="pioneer-banner__note">For everyone who joins by then, including members who have already joined.</p>
+              </div>
+              <ul>
+                <li>Priority registration for our first CDMP study group, once the cohort is confirmed</li>
+                <li>A &ldquo;Pioneer Member&rdquo; mark on your digital membership card</li>
+                <li>A say in which activities we run first in 2027</li>
+              </ul>
+            </div>
+          )}
           <p className="text-center mt-40 muted">
             Already a member? <Link href="/login">Log in to your account</Link>. Compare benefits on the <a href="/membership">membership page</a>.
           </p>

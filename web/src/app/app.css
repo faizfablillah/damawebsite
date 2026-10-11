@@ -89,6 +89,7 @@
 .badge--red { background: #fee2e2; color: #991b1b; }
 .badge--blue { background: #dbeafe; color: #1e40af; }
 .badge--navy { background: var(--navy); color: #fff; }
+.badge--pioneer { background: var(--mint); color: var(--navy); }
 .badge--teal { background: #ccfbf1; color: #115e59; }
 
 /* Key-value lists */
@@ -104,6 +105,9 @@ aside .kv { grid-template-columns: max-content 1fr; column-gap: 16px; }
 .member-card::after { content: ""; position: absolute; inset: auto -30% -60% auto; width: 80%; height: 160%; background: url("/assets/img/waves.svg") center / 100% 100% no-repeat; opacity: .25; transform: rotate(-12deg); }
 .member-card > * { position: relative; z-index: 1; }
 .member-card .tier { color: var(--mint); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: .8rem; }
+.member-card .card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pioneer-mark { display: inline-flex; align-items: center; gap: 6px; background: var(--mint); color: var(--navy); border-radius: 999px; padding: 4px 12px; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.pioneer-mark::before { content: "★"; }
 .member-card .code { font-family: var(--font-head); font-size: clamp(1.6rem, 4vw, 2.2rem); color: #fff; font-weight: 700; margin: 6px 0 2px; letter-spacing: .02em; }
 .member-card .name { color: #fff; font-size: 1.1rem; margin-bottom: 14px; }
 .member-card .meta { display: flex; gap: 28px; flex-wrap: wrap; font-size: .9rem; }

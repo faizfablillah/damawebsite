@@ -113,6 +113,11 @@
       .catch(function () {});
   }
 
+  // Time-limited offers (e.g. Pioneer Members) disappear after their end time
+  document.querySelectorAll("[data-until]").forEach(function (el) {
+    if (Date.now() >= Date.parse(el.getAttribute("data-until"))) el.remove();
+  });
+
   // Footer year
   document.querySelectorAll("[data-year]").forEach(function (el) { el.textContent = new Date().getFullYear(); });
 })();

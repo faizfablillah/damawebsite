@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/auth";
 import { ADMIN_ROLES, can, CATEGORY_LABEL, isAcademicEmail, stateName, TIERS } from "@/lib/config";
 import { fmtDate, fmtDateTime, money, rm, todayKL } from "@/lib/format";
 import { loadMembership } from "@/lib/queries";
+import { isPioneer } from "@/lib/pioneer";
 import { orderBalance, orderTotal, seatCode } from "@/lib/membership";
 import {
   adminSeatAction,
@@ -82,6 +83,7 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {m.memberCode && <span className="badge badge--navy">{m.memberCode}</span>}
+            {isPioneer(b) && <span className="badge badge--pioneer">Pioneer Member</span>}
             <MembershipBadge status={m.status} />
             <EligibilityBadge status={m.eligibilityStatus} />
             {org && <PipelineBadge status={org.pipelineStatus} prefix="Pipeline: " />}

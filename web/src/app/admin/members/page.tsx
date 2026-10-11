@@ -6,6 +6,7 @@ import type { MembershipStatus } from "@/db/schema";
 import { EligibilityBadge, Empty, MembershipBadge } from "@/components/ui";
 import { CATEGORY_LABEL, TIERS, type Category } from "@/lib/config";
 import { fmtDate } from "@/lib/format";
+import { pioneerSql } from "@/lib/pioneer";
 
 const STATUSES: MembershipStatus[] = ["pending", "active", "grace", "expired", "suspended", "rejected", "cancelled"];
 
@@ -17,11 +18,13 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
   const status = typeof sp.status === "string" && STATUSES.includes(sp.status as MembershipStatus) ? (sp.status as MembershipStatus) : null;
   const eligibility = sp.eligibility === "pending" ? "pending" : null;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  const pioneers = sp.pioneer === "1";
 
   const where: SQL[] = [];
   if (category) where.push(eq(schema.memberships.category, category));
   if (status) where.push(eq(schema.memberships.status, status));
   if (eligibility) where.push(eq(schema.memberships.eligibilityStatus, "pending"));
+  if (pioneers) where.push(pioneerSql);
   if (q) {
     const like = `%${q}%`;
     where.push(
@@ -37,7 +40,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
   }
   const db = await getDb();
   const rows = await db
-    .select({ m: schema.memberships, user: schema.users, org: schema.organisations })
+    .select({ m: schema.memberships, user: schema.users, org: schema.organisations, pioneer: pioneerSql })
     .from(schema.memberships)
     .leftJoin(schema.users, eq(schema.memberships.userId, schema.users.id))
     .leftJoin(schema.organisations, eq(schema.memberships.organisationId, schema.organisations.id))
@@ -78,6 +81,13 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
             </select>
           </div>
         )}
+        <div className="field">
+          <label htmlFor="pioneer">Pioneer Members</label>
+          <select className="input" id="pioneer" name="pioneer" defaultValue={pioneers ? "1" : ""}>
+            <option value="">Any</option>
+            <option value="1">Pioneers only</option>
+          </select>
+        </div>
         <button className="btn btn--primary btn--sm" type="submit">
           Filter
         </button>
@@ -99,7 +109,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ m, user, org }) => (
+              {rows.map(({ m, user, org, pioneer }) => (
                 <tr key={m.id}>
                   <td>
                     <Link href={`/admin/members/${m.id}`}>{m.memberCode ?? "Not assigned"}</Link>
@@ -117,6 +127,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                       <MembershipBadge status={m.status} />
                       <EligibilityBadge status={m.eligibilityStatus} />
                       {m.imported && <span className="badge">Imported</span>}
+                      {pioneer && <span className="badge badge--pioneer">Pioneer</span>}
                     </div>
                   </td>
                   <td>{fmtDate(m.endDate)}</td>

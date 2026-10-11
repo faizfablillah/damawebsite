@@ -418,3 +418,13 @@ button, input, select, textarea { font: inherit; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Pioneer Members offer (until 31 Dec 2026) */
+.pioneer-banner { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 40px; align-items: center; background: linear-gradient(135deg, var(--navy) 0%, #0f3a6b 60%, var(--teal) 100%); color: #dbe5f4; border-radius: var(--radius-lg); padding: 36px 40px; box-shadow: var(--shadow); text-align: left; }
+.pioneer-banner h3 { color: #fff; font-size: clamp(1.25rem, 2.2vw, 1.6rem); line-height: 1.25; margin: 0 0 10px; }
+.pioneer-banner__eyebrow { display: inline-block; background: var(--mint); color: var(--navy); border-radius: 999px; padding: 4px 14px; font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 14px; }
+.pioneer-banner__note { color: #b6c2d9; font-size: .92rem; margin: 0; }
+.pioneer-banner ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pioneer-banner li { position: relative; padding-left: 30px; color: #eef3fb; }
+.pioneer-banner li::before { content: ""; position: absolute; left: 0; top: .35em; width: 18px; height: 18px; border-radius: 50%; background: var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23071b41' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 12px no-repeat; }
+@media (max-width: 760px) { .pioneer-banner { grid-template-columns: minmax(0, 1fr); padding: 28px 22px; } }

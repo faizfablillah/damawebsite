@@ -8,6 +8,7 @@ import { requireVerifiedUser } from "@/lib/auth";
 import { stateName, TIERS } from "@/lib/config";
 import { fmtDate } from "@/lib/format";
 import { loadMembership } from "@/lib/queries";
+import { isPioneer } from "@/lib/pioneer";
 import { seatCode } from "@/lib/membership";
 import { assignSeatAction } from "../../actions";
 import { Flash } from "@/components/flash";
@@ -100,7 +101,10 @@ export default async function OrganisationPage({ params }: PageProps<"/portal/or
               <section className="panel">
                 <div className="panel-head">
                   <h2>Membership</h2>
-                  <MembershipBadge status={m.status} />
+                  <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {isPioneer(b) && <span className="badge badge--pioneer">Pioneer Member</span>}
+                    <MembershipBadge status={m.status} />
+                  </span>
                 </div>
                 <dl className="kv">
                   <dt>Stage</dt>

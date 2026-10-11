@@ -6,6 +6,7 @@ import { money, todayKL } from "@/lib/format";
 import { IMPORT_TEMPLATE } from "@/lib/import";
 import { seatCode } from "@/lib/membership";
 import { audit } from "@/lib/audit";
+import { pioneerSql } from "@/lib/pioneer";
 import { csvResponse as csv, toCsv } from "@/lib/csv";
 
 export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]">) {
@@ -18,7 +19,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]
 
   if (kind === "members") {
     const rows = await db
-      .select({ m: schema.memberships, u: schema.users, o: schema.organisations })
+      .select({ m: schema.memberships, u: schema.users, o: schema.organisations, pioneer: pioneerSql })
       .from(schema.memberships)
       .leftJoin(schema.users, eq(schema.memberships.userId, schema.users.id))
       .leftJoin(schema.organisations, eq(schema.memberships.organisationId, schema.organisations.id))
@@ -27,7 +28,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]
     return csv(
       `dama-members-${date}.csv`,
       toCsv(
-        rows.map(({ m, u, o }) => ({
+        rows.map(({ m, u, o, pioneer }) => ({
           member_id: m.memberCode ?? "",
           category: CATEGORY_LABEL[m.category],
           tier: TIERS[m.tier].label,
@@ -46,6 +47,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/admin/export/[kind]
           joined: m.createdAt.toISOString().slice(0, 10),
           topics: m.topics.join("; "),
           imported: m.imported ? "yes" : "",
+          pioneer_member: pioneer ? "yes" : "",
         })),
       ),
     );

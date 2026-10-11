@@ -81,10 +81,12 @@ export async function signupAction(_: FormState, data: FormData): Promise<FormSt
     })
     .returning();
   await audit(user.id, "user.signed_up", "user", user.id, { tier: d.tier });
+  // The confirmation link brings them back where they were heading: an event, or the application for the tier they picked
+  const next = safeNext(d.next) ?? (d.tier ? `/portal/apply?tier=${d.tier}` : null);
   const token = await createAuthToken(user.id, "verify_email");
-  await later(() => sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token, safeNext(d.next)), { userId: user.id }));
+  await later(() => sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token, next), { userId: user.id }));
   await createSession(user.id);
-  redirect(`/check-email${d.tier ? `?tier=${d.tier}` : ""}`);
+  redirect(`/check-email${next ? `?next=${encodeURIComponent(next)}` : ""}`);
 }
 
 const loginSchema = z.object({ email: emailField, password: z.string().min(1, "Enter your password."), next: z.string().optional() });
@@ -123,12 +125,12 @@ export async function logoutAction() {
   redirect("/login?signedOut=1");
 }
 
-export async function resendVerificationAction(_: FormState): Promise<FormState> {
+export async function resendVerificationAction(_: FormState, data: FormData): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.emailVerifiedAt) redirect("/portal");
   const token = await createAuthToken(user.id, "verify_email");
-  await later(() => sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token), { userId: user.id }));
+  await later(() => sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token, safeNext(data.get("next"))), { userId: user.id }));
   return { ok: `We've sent a new confirmation link to ${user.email}.` };
 }
 

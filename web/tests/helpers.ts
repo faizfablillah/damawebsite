@@ -59,7 +59,8 @@ export async function signup(
 export async function verifyEmail(page: Page, email: string) {
   const mail = await lastMail(email, "verifyEmail");
   await page.goto(linkIn(mail));
-  await expect(page.getByRole("heading", { name: "Email confirmed" })).toBeVisible();
+  // Confirming goes straight on to where they were heading (portal, application or event)
+  await expect(page).not.toHaveURL(/verify-email/);
 }
 
 export async function login(page: Page, email: string, password = PASSWORD) {

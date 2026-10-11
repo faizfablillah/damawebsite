@@ -30,6 +30,9 @@ test("admin account is created from SUPER_ADMIN_EMAILS", async ({ page }) => {
   await signup(page, { name: "Faiz Admin", email: ADMIN });
   await expect(page).toHaveURL(/check-email/);
   await verifyEmail(page, ADMIN);
+  // no tier picked: the portal, with the membership chooser
+  await expect(page).toHaveURL(/\/portal\?confirmed=1/);
+  await expect(page.getByText("your email address is confirmed")).toBeVisible();
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "DAMA Admin" })).toBeVisible();
 });
@@ -44,7 +47,10 @@ test("student sign-up enforces .edu / .edu.my email", async ({ page }) => {
 test("student applies, pays, is verified and approved", async ({ page }) => {
   await signup(page, { tier: "student", name: "Aina Student", email: STUDENT, state: "SL", organisation: "Universiti Malaya" });
   await verifyEmail(page, STUDENT);
-  await page.goto("/portal/apply?tier=student");
+  // the confirmation link lands on the application for the tier picked at sign-up, no second chooser
+  await expect(page).toHaveURL(/\/portal\/apply\?tier=student/);
+  await expect(page.getByText("your email address is confirmed")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Student membership application" })).toBeVisible();
   await page.getByLabel("Expected graduation year").fill("2027");
   // file type is checked by content, not by name
   await page.getByLabel("Proof of student status").setInputFiles(FAKE_PDF);
@@ -107,7 +113,7 @@ test("student applies, pays, is verified and approved", async ({ page }) => {
 test("individual part-pays, then pays the balance and is activated", async ({ page }) => {
   await signup(page, { tier: "individual", name: "Ravi Kumar", email: INDIVIDUAL, organisation: "Data Co" });
   await verifyEmail(page, INDIVIDUAL);
-  await page.goto("/portal/apply?tier=individual");
+  await expect(page.getByRole("heading", { name: "Individual membership application" })).toBeVisible();
   await page.getByLabel("Data Quality").check();
   await page.getByLabel(/I'm applying for/).check();
   await page.getByRole("button", { name: "Continue to payment" }).click();
@@ -772,7 +778,6 @@ test("signing up from an event page returns to the event", async ({ page }) => {
   await page.getByLabel("I acknowledge and agree").check();
   await page.getByRole("button", { name: "Create account" }).click();
   await verifyEmail(page, "nora@example.com");
-  await page.getByRole("link", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Data Governance Workshop" })).toBeVisible();
   await expect(page.getByText("Your price: RM 120.00")).toBeVisible();
 });

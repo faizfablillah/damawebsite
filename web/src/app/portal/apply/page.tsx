@@ -39,6 +39,7 @@ export default async function ApplyPage({ searchParams }: PageProps<"/portal/app
       </AppHero>
       <div className="app-main">
         <div className="container narrow">
+          {sp.confirmed && <Notice kind="success">Thank you — your email address is confirmed. Complete your application below.</Notice>}
           {studentBlocked ? (
             <div className="panel">
               <Notice kind="error">

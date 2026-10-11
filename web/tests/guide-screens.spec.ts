@@ -77,10 +77,9 @@ test("guide: individual journey", async ({ page }) => {
 
   const verify = await openMail(page, EMAIL, "verifyEmail", "07-email-verify");
   await page.goto(linkIn(verify));
-  await expect(page.getByRole("heading", { name: "Email confirmed" })).toBeVisible();
+  await expect(page.getByText("your email address is confirmed")).toBeVisible();
   await snap(page, "08-email-confirmed");
 
-  await page.goto("/portal/apply?tier=individual");
   await page.getByLabel("Data Privacy").check();
   await page.getByLabel("Data Quality").check();
   await snap(page, "09-apply", page.getByLabel("Data Quality"));

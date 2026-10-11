@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { AppHero } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/form";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, safeNext } from "@/lib/auth";
 import { resendVerificationAction } from "../actions";
 
 export const metadata = { title: "Confirm your email" };
 
-export default async function CheckEmailPage() {
+export default async function CheckEmailPage({ searchParams }: PageProps<"/check-email">) {
+  const next = safeNext((await searchParams).next) ?? "";
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.emailVerifiedAt) redirect("/portal");
@@ -21,6 +22,7 @@ export default async function CheckEmailPage() {
             </p>
             <p className="muted-sm">Can't find it? Check your spam or junk folder. The link expires in 72 hours.</p>
             <ActionForm action={resendVerificationAction}>
+              <input type="hidden" name="next" value={next} />
               <div>
                 <Submit className="btn btn--outline btn--sm" pendingText="Sending…">
                   Send a new link

@@ -238,6 +238,7 @@ export default async function PortalPage({ searchParams }: PageProps<"/portal">)
       </AppHero>
       <div className="app-main">
         <div className="container">
+          {sp.confirmed && <Notice kind="success">Thank you — your email address is confirmed.</Notice>}
           {sp.submitted && <Notice kind="success">Thank you — your payment details have been submitted. We'll email you once they're verified.</Notice>}
           {sp.lead && <Notice kind="success">Thank you! Our Corporate Membership PIC will reach out within 3–5 business days.</Notice>}
           {sp.passwordReset && <Notice kind="success">Your password has been updated.</Notice>}

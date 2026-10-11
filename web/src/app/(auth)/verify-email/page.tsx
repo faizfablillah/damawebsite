@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { AppHero, Notice } from "@/components/ui";
 import { getDb, schema } from "@/db";
-import { consumeAuthToken, grantBootstrapAdmin, safeNext } from "@/lib/auth";
+import { consumeAuthToken, getCurrentUser, grantBootstrapAdmin, safeNext } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
-export const metadata = { title: "Email confirmed" };
+export const metadata = { title: "Confirm your email" };
 
 export default async function VerifyEmailPage({ searchParams }: PageProps<"/verify-email">) {
   const sp = await searchParams;
@@ -17,28 +18,23 @@ export default async function VerifyEmailPage({ searchParams }: PageProps<"/veri
     await audit(userId, "user.email_verified", "user", userId);
     await grantBootstrapAdmin(user);
   }
+  // Straight on to where they were heading (their application, or an event), with a note on portal pages.
+  // A link clicked twice by someone already confirmed goes the same way instead of showing an error.
+  if (userId || (await getCurrentUser())?.emailVerifiedAt) {
+    const next = safeNext(sp.next) ?? "/portal";
+    redirect(next.startsWith("/portal") ? `${next}${next.includes("?") ? "&" : "?"}confirmed=1` : next);
+  }
   return (
     <>
-      <AppHero eyebrow="Account" title={userId ? "Email confirmed" : "Link not valid"} />
+      <AppHero eyebrow="Account" title="Link not valid" />
       <div className="app-main">
         <div className="container narrow--sm">
-          {userId ? (
-            <div className="panel panel--accent">
-              <p>Thank you — your email address is confirmed.</p>
-              <Link className="btn btn--primary" href={safeNext(sp.next) ?? "/portal"}>
-                Continue
-              </Link>
-            </div>
-          ) : (
-            <>
-              <Notice kind="warn">This confirmation link is invalid, has already been used, or has expired.</Notice>
-              <p>
-                <Link className="btn btn--primary" href="/check-email">
-                  Get a new link
-                </Link>
-              </p>
-            </>
-          )}
+          <Notice kind="warn">This confirmation link is invalid, has already been used, or has expired.</Notice>
+          <p>
+            <Link className="btn btn--primary" href="/check-email">
+              Get a new link
+            </Link>
+          </p>
         </div>
       </div>
     </>

@@ -30,7 +30,7 @@ export default async function ExportPage() {
         <section className="panel">
           <h2>Database backups</h2>
           <p className="muted-sm">
-            A full copy of the database is saved every night (9 am) and kept for {BACKUP_KEEP_DAYS} days. Download one now and then and keep it
+            A full copy of the database is saved every morning (7 am) and kept for {BACKUP_KEEP_DAYS} days. Download one now and then and keep it
             somewhere safe (e.g. DAMA&apos;s OneDrive or Google Drive) — it contains personal data, so don&apos;t email it. Uploaded files
             (payment proofs, student cards) are not inside the backup; they stay in the storage bucket.
           </p>

@@ -116,7 +116,7 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 
 **Admin (`/admin`):** Dashboard (sign-ups today by tier, payments to verify, student checks, corporate leads, seat requests, renewals due, active totals, recent activity) · Payments (verify with actual amount → part payment if less; reject with reason; record offline payment; discount; special term — super admins) · Students / Individuals / All members (search, filters, full record) · Corporate (pipeline: New lead → PIC contacted → Invoice sent → Pending payment → Payment review → Pending user list → Active; assign PIC, notes, upload proposals/invoices, manage seats, approve swaps) · Renewals · Email log · Export (members, payments, seats as CSV) · Import · Settings (prices, bank details, grace, reminders) · Admins (roles) · Audit trail.
 
-**Admin notifications (added 11 Oct 2026, `src/lib/admin-notify.ts`):** admins get an email as each item arrives (membership or event payment to verify → Finance + super admins; student check, new corporate lead, seat change request → Membership admins + super admins), each with the details and a link to the right admin page, plus a 9 am "N items waiting for you" summary from the daily job (only the sections their role covers; not sent when nothing waits). Recipients follow roles in Admin → Admins, so Peggy starts getting payment emails as soon as she has the Finance role. Events admins get none.
+**Admin notifications (added 11 Oct 2026, `src/lib/admin-notify.ts`):** admins get an email as each item arrives (membership or event payment to verify → Finance + super admins; student check, new corporate lead, seat change request → Membership admins + super admins), each with the details and a link to the right admin page, plus a 7 am "N items waiting for you" summary from the daily job (only the sections their role covers; not sent when nothing waits). Recipients follow roles in Admin → Admins, so Peggy starts getting payment emails as soon as she has the Finance role. Events admins get none.
 
 **Roles:** Super admin (all), Membership admin (members, approvals, corporate, seats, export, announcements), Finance (payments incl. event payments, receipts, export), **Events admin** (events and attendees only — no member records or payments). First super admin = an account whose email is in `SUPER_ADMIN_EMAILS`, granted only after the email is confirmed and only while no super admin exists (so production ignores it now; add further admins in Admin → Admins). Super admins can also **disable** an account there (signs it out everywhere, blocks login and password reset).
 
@@ -132,7 +132,7 @@ DAMA - <partner>/           Local only (git-ignored) — partnership folders wit
 - **Files:** private storage (local disk, or any S3-compatible bucket such as Supabase Storage). Uploads checked by content (PDF/JPG/PNG/WEBP, ≤ 4 MB). Served only to admins or the owner.
 - **Email:** SMTP (`SMTP_*` — used now: Zoho, sending as "DAMA Malaysia" <info@dama.org.my>), or Microsoft 365 via the Graph API (`MS_*`, switched off), or, locally, files in `web/.data/outbox` viewable at `/dev/outbox`.
 - **PDF receipts:** pdfkit, generated from a stored snapshot (receipts never change after issue).
-- **Daily job:** `GET /api/cron/daily` with `Authorization: Bearer CRON_SECRET` (scheduled in `web/vercel.json`, 01:00 UTC).
+- **Daily job:** `GET /api/cron/daily` with `Authorization: Bearer CRON_SECRET` (scheduled in `web/vercel.json`, 23:00 UTC = 7 am Malaysia).
 
 ---
 
@@ -160,7 +160,7 @@ Local admin: sign up with the email in `web/.env.local` → `SUPER_ADMIN_EMAILS`
 | Hosting | Vercel project `dama-malaysia` (Hobby, account faizfablillah / team "Faiz Fablillah's projects"), root directory `web`, linked to GitHub — **every push to `main` redeploys** (~2 min) |
 | Database + files | Supabase project `dama-malaysia` (**Pro plan since 10 Oct 2026**, Micro compute, Singapore, ref `zzwgvnxywxclxjfyrjok`), **transaction pooler port 6543, pool of 20** (see Gotchas — the session pooler caps clients at 15), private bucket `dama-files` (S3 access key "vercel") |
 | Email | **Zoho Mail** (Mail Lite, 2 users, bought 9 Oct 2026): `admin@dama.org.my` (Zoho super admin) and `info@dama.org.my` (shared public inbox). The website sends as **info@dama.org.my** over SMTP `smtppro.zoho.com:465` with an app-specific password (`SMTP_*`, `MAIL_FROM` in Vercel + `web/.env.production.local`). DNS in Vercel: MX mx/mx2/mx3.zoho.com, SPF `include:zohomail.com`, DKIM selector `zmail` (verified), DMARC `p=none` reporting to admin@. The old Microsoft Graph sender is switched off (`MS_*` removed from Vercel; kept commented locally) |
-| Daily job | Vercel Cron 01:00 UTC (9 am MYT) → `/api/cron/daily`: statuses + renewal reminders, event reminders, the admins' "waiting for you" summary, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
+| Daily job | Vercel Cron 23:00 UTC (7 am MYT; moved from 9 am on 11 Oct 2026) → `/api/cron/daily`: statuses + renewal reminders, event reminders, the admins' "waiting for you" summary, **nightly database backup** (bucket `backups/`, kept 30 days, super admins download in Admin → Export), then a health check that **emails the super admins** (or `ALERT_EMAILS`) if a step failed or any email failed to send in the last 24 h. `?testAlert=1` sends a test alert |
 | Secrets | git-ignored `web/.env.production.local` (all production values) + Vercel env vars (secrets marked sensitive) |
 
 Re-running the setup or changing a setting: edit `web/.env.production.local`, update the variable in Vercel (`npx vercel env add NAME production`), redeploy. Never paste secrets in chat — log in with `! npx vercel login`, `! az login`, or put values in the git-ignored files.
@@ -244,7 +244,7 @@ Known limitations: changing tier means a new application and new Member ID; corp
 - [x] 9 Oct — Zoho Mail (admin@, info@); website sends as "DAMA Malaysia" <info@dama.org.my>; contact address switched everywhere.
 - [x] 10 Oct — "How to join" deck + video; sign-up limit raised to 100/hour per network; Iffah IMYSL26-0002.
 - [x] 10 Oct — Supabase upgraded to Pro (checked afterwards: site, database and reconnect test all fine).
-- [x] 11 Oct — admin notification emails (each payment / student check / lead / seat request) and the 9 am "waiting for you" summary; go to admin@ now, and to Finance / Membership admins once roles are given.
+- [x] 11 Oct — admin notification emails (each payment / student check / lead / seat request) and the "waiting for you" summary (7 am); go to admin@ now, and to Finance / Membership admins once roles are given.
 - [x] 10 Oct — admin@dama.org.my is the production super admin (account only, no membership); test data removed; **first real member: Datin Habsah, IMYSL26-0001**, 3-year special term (10 Oct 2026 – 9 Oct 2029, RM 500), receipt MY/MEM/2026/0001.
 
 ---

@@ -8,6 +8,7 @@ import { getSettings, priceFor } from "./settings";
 import { audit } from "./audit";
 import { sendEmail, templates } from "./email";
 import { notifyStaff } from "./admin-notify";
+import { later } from "./later";
 import { receiptPdf } from "./receipt-pdf";
 import { pruneAttempts } from "./rate-limit";
 
@@ -171,15 +172,18 @@ export async function createApplication(input: ApplicationInput) {
 
   const links = { userId: input.user.id, membershipId: result.membership.id, organisationId: result.membership.organisationId };
   if (tier.category === "C" && input.organisation?.wantsCall) {
-    await sendEmail(input.organisation.contactEmail, "corporateLead", templates.corporateLead(input.organisation.contactName, input.organisation.name), links);
+    const org = input.organisation;
+    await later(() => sendEmail(org.contactEmail, "corporateLead", templates.corporateLead(org.contactName, org.name), links));
   } else {
     const to = tier.category === "C" ? input.organisation!.contactEmail : input.user.email;
     const name = tier.category === "C" ? input.organisation!.contactName : input.user.name;
-    await sendEmail(
-      to,
-      "applicationReceived",
-      templates.applicationReceived(name, tier.category === "C" ? `Corporate — ${tier.label}` : tier.label, rm(orderTotal(result.order)), result.order.paymentReference),
-      links,
+    await later(() =>
+      sendEmail(
+        to,
+        "applicationReceived",
+        templates.applicationReceived(name, tier.category === "C" ? `Corporate — ${tier.label}` : tier.label, rm(orderTotal(result.order)), result.order.paymentReference),
+        links,
+      ),
     );
   }
   if (tier.category === "E") {
@@ -277,11 +281,11 @@ export async function submitPayment(input: {
     await audit(input.userId, "payment.submitted", "payment", p.id, { amount: input.amount }, tx);
     return { payment: p, membership: m, owner, order: o };
   });
-  await sendEmail(res.owner.email, "paymentSubmitted", templates.paymentSubmitted(res.owner.name, rm(input.amount)), {
+  await later(() => sendEmail(res.owner.email, "paymentSubmitted", templates.paymentSubmitted(res.owner.name, rm(input.amount)), {
     userId: res.owner.userId,
     membershipId: res.membership.id,
     organisationId: res.membership.organisationId,
-  });
+  }));
   const payer = res.owner.organisation?.name ?? res.owner.name;
   await notifyStaff(
     "payments",
@@ -451,7 +455,7 @@ export async function verifyPayment(paymentId: string, adminId: string, amount?:
     await audit(adminId, "payment.verified", "payment", p.id, { amount: updated.amount, receiptNo: r.receipt.receiptNo }, tx);
     return r;
   });
-  await notifyAfterPayment(result);
+  await later(() => notifyAfterPayment(result));
   return result;
 }
 
@@ -488,7 +492,7 @@ export async function recordOfflinePayment(input: {
     await audit(input.adminId, "payment.recorded", "payment", p.id, { amount: input.amount, receiptNo: r.receipt.receiptNo }, tx);
     return r;
   });
-  await notifyAfterPayment(result);
+  await later(() => notifyAfterPayment(result));
   return result;
 }
 
@@ -514,11 +518,11 @@ export async function rejectPayment(paymentId: string, adminId: string, reason: 
     await audit(adminId, "payment.rejected", "payment", p.id, { reason }, tx);
     return { p, m, owner: await ownerOf(tx, m) };
   });
-  await sendEmail(res.owner.email, "paymentRejected", templates.paymentRejected(res.owner.name, rm(res.p.amount), reason), {
+  await later(() => sendEmail(res.owner.email, "paymentRejected", templates.paymentRejected(res.owner.name, rm(res.p.amount), reason), {
     userId: res.owner.userId,
     membershipId: res.m.id,
     organisationId: res.m.organisationId,
-  });
+  }));
 }
 
 export async function setOrderDiscount(orderId: string, discount: number, adminId: string) {
@@ -585,10 +589,13 @@ export async function decideEligibility(membershipId: string, adminId: string, a
   });
   const links = { userId: res.owner.userId, membershipId: res.m.id };
   if (!approve) {
-    await sendEmail(res.owner.email, "eligibilityRejected", templates.eligibilityRejected(res.owner.name, note || "We could not verify your student status."), links);
+    await later(() => sendEmail(res.owner.email, "eligibilityRejected", templates.eligibilityRejected(res.owner.name, note || "We could not verify your student status."), links));
   } else if (res.activation && res.m.memberCode) {
-    const attachments = res.lastReceipt ? [await receiptAttachment({ ...res.lastReceipt, periodStart: res.activation.start, periodEnd: res.activation.end, periodNote: null })] : [];
-    await sendEmail(res.owner.email, "welcome", templates.welcome(res.owner.name, "Student — Educational (Student)", res.m.memberCode, fmtDate(res.activation.start), fmtDate(res.activation.end)), links, attachments);
+    const { activation, lastReceipt, owner, m } = res;
+    await later(async () => {
+      const attachments = lastReceipt ? [await receiptAttachment({ ...lastReceipt, periodStart: activation.start, periodEnd: activation.end, periodNote: null })] : [];
+      await sendEmail(owner.email, "welcome", templates.welcome(owner.name, "Student — Educational (Student)", m.memberCode!, fmtDate(activation.start), fmtDate(activation.end)), links, attachments);
+    });
   }
 }
 
@@ -649,7 +656,7 @@ export async function assignSeat(input: { seatId: string; actorId: string; asAdm
     return { kind: "assigned" as const, code: seatCode(m.memberCode, seat.seatNo), org, m };
   });
   if (res.kind === "assigned") {
-    await sendEmail(input.email, "seatInvite", templates.seatInvite(input.name, res.org.name, res.code), { membershipId: res.m.id, organisationId: res.org.id });
+    await later(() => sendEmail(input.email, "seatInvite", templates.seatInvite(input.name, res.org.name, res.code), { membershipId: res.m.id, organisationId: res.org.id }));
   } else {
     await notifyStaff(
       "members",

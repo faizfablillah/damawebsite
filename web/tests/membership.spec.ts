@@ -60,6 +60,8 @@ test("student applies, pays, is verified and approved", async ({ page }) => {
   await expect(page.getByText("Payment under review")).toBeVisible();
 
   // The super admin is told about the student check and the payment as each arrives…
+  // (emails go out just after the page responds, so wait for them)
+  await expect.poll(() => mails(ADMIN, "staffNotice").length).toBe(2);
   const notices = mails(ADMIN, "staffNotice");
   expect(notices.map((m) => m.subject)).toEqual(["Student check: Aina Student", "Payment to verify: RM 25.00 from Aina Student"]);
   expect(notices[1].text).toContain("AMB-STU-001");

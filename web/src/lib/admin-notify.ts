@@ -3,6 +3,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { ADMIN_ROLES, APP_URL, can, type Permission } from "./config";
 import { sendEmail, templates } from "./email";
+import { later } from "./later";
 import { fmtDateTime, rm } from "./format";
 
 // Tells the back office when something needs them: one email as each item arrives, and a morning
@@ -20,14 +21,12 @@ async function admins() {
     .where(and(inArray(schema.users.role, ADMIN_ROLES), eq(schema.users.disabled, false)));
 }
 
-// Never lets a notification problem break the member's own action (failures still show in Admin → Email log)
+// Sent after the member's page has loaded, and never breaks their action (failures still show in Admin → Email log)
 export async function notifyStaff(area: Area, title: string, details: [string, string | null | undefined][], path: string) {
-  try {
-    const mail = templates.staffNotice(title, details.filter((d): d is [string, string] => !!d[1]), `${APP_URL}${path}`);
+  const mail = templates.staffNotice(title, details.filter((d): d is [string, string] => !!d[1]), `${APP_URL}${path}`);
+  await later(async () => {
     for (const s of (await admins()).filter((a) => can(a.role, area))) await sendEmail(s.email, "staffNotice", mail);
-  } catch (e) {
-    console.error("Staff notification failed", title, e);
-  }
+  });
 }
 
 const waited = (since: Date) => {

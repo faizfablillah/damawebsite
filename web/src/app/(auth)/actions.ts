@@ -18,6 +18,7 @@ import {
 } from "@/lib/auth";
 import { adminHome, isAcademicEmail, PDPA_CONSENT_VERSION, STATE_CODES, can } from "@/lib/config";
 import { sendEmail, templates } from "@/lib/email";
+import { later } from "@/lib/later";
 import { audit } from "@/lib/audit";
 import { invalid, keepValues, plain, type FormState } from "@/lib/form-state";
 import { LIMITS, blockedFor, clearEmailAttempts, clientIp, emailIpKey, emailKey, ipKey, minutesText, recordAttempt } from "@/lib/rate-limit";
@@ -81,7 +82,7 @@ export async function signupAction(_: FormState, data: FormData): Promise<FormSt
     .returning();
   await audit(user.id, "user.signed_up", "user", user.id, { tier: d.tier });
   const token = await createAuthToken(user.id, "verify_email");
-  await sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token, safeNext(d.next)), { userId: user.id });
+  await later(() => sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token, safeNext(d.next)), { userId: user.id }));
   await createSession(user.id);
   redirect(`/check-email${d.tier ? `?tier=${d.tier}` : ""}`);
 }
@@ -127,7 +128,7 @@ export async function resendVerificationAction(_: FormState): Promise<FormState>
   if (!user) redirect("/login");
   if (user.emailVerifiedAt) redirect("/portal");
   const token = await createAuthToken(user.id, "verify_email");
-  await sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token), { userId: user.id });
+  await later(() => sendEmail(user.email, "verifyEmail", templates.verifyEmail(user.name, token), { userId: user.id }));
   return { ok: `We've sent a new confirmation link to ${user.email}.` };
 }
 
@@ -144,7 +145,7 @@ export async function forgotPasswordAction(_: FormState, data: FormData): Promis
   const [user] = await db.select().from(schema.users).where(eq(schema.users.email, parsed.data.email));
   if (user && !user.disabled && !quiet) {
     const token = await createAuthToken(user.id, "reset_password");
-    await sendEmail(user.email, "resetPassword", templates.resetPassword(user.name, token), { userId: user.id });
+    await later(() => sendEmail(user.email, "resetPassword", templates.resetPassword(user.name, token), { userId: user.id }));
   }
   return { ok: "If an account exists for that email, we've sent a link to reset your password." };
 }

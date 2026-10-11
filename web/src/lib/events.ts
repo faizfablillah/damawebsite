@@ -8,6 +8,7 @@ import { getSettings } from "./settings";
 import { audit } from "./audit";
 import { sendEmail, templates } from "./email";
 import { notifyStaff } from "./admin-notify";
+import { later } from "./later";
 import { receiptPdf } from "./receipt-pdf";
 import { membershipsForUser } from "./queries";
 import { BusinessError, nextCounter, seatCode } from "./membership";
@@ -176,8 +177,8 @@ export async function registerForEvent(user: User, eventId: string) {
     return { r, e };
   });
   const { r, e } = result;
-  if (r.status === "confirmed") await sendConfirmation(r, e);
-  else await sendEmail(r.email, "eventPaymentNeeded", templates.eventPaymentNeeded(r.name, eventInfo(e), rm(r.amount), r.paymentReference!, payUrl(r.id)), { userId: r.userId });
+  if (r.status === "confirmed") await later(() => sendConfirmation(r, e));
+  else await later(() => sendEmail(r.email, "eventPaymentNeeded", templates.eventPaymentNeeded(r.name, eventInfo(e), rm(r.amount), r.paymentReference!, payUrl(r.id)), { userId: r.userId }));
   return r;
 }
 
@@ -209,7 +210,7 @@ export async function submitEventPayment(input: { registrationId: string; userId
     const [e] = await tx.select().from(schema.events).where(eq(schema.events.id, r.eventId));
     return { r, p, e };
   });
-  await sendEmail(res.r.email, "paymentSubmitted", templates.paymentSubmitted(res.r.name, rm(input.amount)), { userId: res.r.userId });
+  await later(() => sendEmail(res.r.email, "paymentSubmitted", templates.paymentSubmitted(res.r.name, rm(input.amount)), { userId: res.r.userId }));
   await notifyStaff(
     "payments",
     `Event payment to verify: ${rm(input.amount)} from ${res.r.name}`,
@@ -283,8 +284,7 @@ export async function verifyEventPayment(paymentId: string, adminId: string, amo
     await audit(adminId, "event.payment_verified", "event", e.id, { paymentId: p.id, receiptNo, amount: amountReceived }, tx);
     return { r: confirmed, e, receipt };
   });
-  const pdf = await receiptPdf(res.receipt, website);
-  await sendConfirmation(res.r, res.e, { pdf, receiptNo: res.receipt.receiptNo });
+  await later(async () => sendConfirmation(res.r, res.e, { pdf: await receiptPdf(res.receipt, website), receiptNo: res.receipt.receiptNo }));
   return res.receipt.receiptNo;
 }
 
@@ -309,7 +309,7 @@ export async function rejectEventPayment(paymentId: string, adminId: string, rea
     await audit(adminId, "event.payment_rejected", "event", e.id, { paymentId: p.id, reason }, tx);
     return { r, e };
   });
-  await sendEmail(res.r.email, "eventPaymentRejected", templates.eventPaymentRejected(res.r.name, eventInfo(res.e), reason, payUrl(res.r.id)), { userId: res.r.userId });
+  await later(() => sendEmail(res.r.email, "eventPaymentRejected", templates.eventPaymentRejected(res.r.name, eventInfo(res.e), reason, payUrl(res.r.id)), { userId: res.r.userId }));
 }
 
 // ---------- admin ----------
@@ -324,7 +324,7 @@ export async function adminCancelRegistration(registrationId: string, adminId: s
   if (!r) throw new BusinessError("This registration is already cancelled.");
   const [e] = await db.select().from(schema.events).where(eq(schema.events.id, r.eventId));
   await audit(adminId, "event.registration_cancelled", "event", e.id, { registrationId: r.id, by: "admin", note });
-  await sendEmail(r.email, "eventCancelled", templates.eventCancelled(r.name, eventInfo(e), note), { userId: r.userId });
+  await later(() => sendEmail(r.email, "eventCancelled", templates.eventCancelled(r.name, eventInfo(e), note), { userId: r.userId }));
 }
 
 export async function setAttended(registrationId: string, attended: boolean, adminId: string) {

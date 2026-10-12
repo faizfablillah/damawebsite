@@ -25,13 +25,17 @@ export const payUrl = (registrationId: string) => `${APP_URL}/portal/events/${re
 
 // Active (or in-grace) member through their own membership, a corporate membership they manage,
 // or a corporate seat they hold. Returns the Member ID to show on the registration.
-export async function memberStatus(user: User): Promise<{ member: boolean; memberCode: string | null }> {
+// `pending`: not a member yet, but has paid and is waiting for the payment (or student proof) check.
+export async function memberStatus(user: User): Promise<{ member: boolean; memberCode: string | null; pending: boolean }> {
   const { bundles, heldSeats } = await membershipsForUser(user);
   const own = bundles.find((b) => ["active", "grace"].includes(b.membership.status));
-  if (own) return { member: true, memberCode: own.membership.memberCode };
+  if (own) return { member: true, memberCode: own.membership.memberCode, pending: false };
   const seat = heldSeats[0];
-  if (seat) return { member: true, memberCode: seatCode(seat.membership.memberCode, seat.seat.seatNo) };
-  return { member: false, memberCode: null };
+  if (seat) return { member: true, memberCode: seatCode(seat.membership.memberCode, seat.seat.seatNo), pending: false };
+  const pending = bundles.some(
+    (b) => b.membership.status === "pending" && b.orders.some((o) => ["pending_verification", "part_paid", "paid"].includes(o.order.status)),
+  );
+  return { member: false, memberCode: null, pending };
 }
 
 // ---------- reading ----------

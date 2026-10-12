@@ -837,6 +837,18 @@ test("partner events, members-only offers and draft news", async ({ page }) => {
   await openEvent(page, "Partner Data Summit");
   await expect(page.getByText("This offer is for DAMA members.")).toBeVisible();
   await expect(page.getByText("DAMATEST")).toHaveCount(0);
+  // Paid but not verified yet: told to wait, not to join
+  await signup(page, { tier: "individual", name: "Waiting Payer", email: "waiting@example.com", state: "KL" });
+  await verifyEmail(page, "waiting@example.com");
+  await page.goto("/portal/apply?tier=individual");
+  await page.getByLabel("Data Quality").check();
+  await page.getByLabel(/I'm applying for/).check();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await submitPayment(page, "150", "RPF-WAITING");
+  await openEvent(page, "Partner Data Summit");
+  await expect(page.getByText("Your membership starts once your payment is verified")).toBeVisible();
+  await expect(page.getByText("This offer is for DAMA members.")).toHaveCount(0);
+  await expect(page.getByText("DAMATEST")).toHaveCount(0);
   await login(page, STUDENT);
   await openEvent(page, "Partner Data Summit");
   await expect(page.getByText("Use promo code DAMATEST when booking.")).toBeVisible();

@@ -61,7 +61,7 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
 
   const [taken, status, registration] = await Promise.all([
     placesTaken(e.id),
-    user ? memberStatus(user) : Promise.resolve({ member: false, memberCode: null }),
+    user ? memberStatus(user) : Promise.resolve({ member: false, memberCode: null, pending: false }),
     user ? registrationFor(e.id, user.id) : Promise.resolve(null),
   ]);
   const active = registration && registration.status !== "cancelled" ? registration : null;
@@ -253,6 +253,10 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
                   </p>
                   {insider ? (
                     e.memberOfferDetails && <p style={{ whiteSpace: "pre-line" }}>{e.memberOfferDetails}</p>
+                  ) : status.pending ? (
+                    <p className="muted-sm">
+                      Your membership starts once your payment is verified (up to 3 business days). How to claim the offer will appear here then.
+                    </p>
                   ) : user ? (
                     <p className="muted-sm">
                       This offer is for DAMA members. <Link href="/join">Join DAMA</Link> to get it.

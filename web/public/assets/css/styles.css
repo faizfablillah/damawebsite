@@ -401,6 +401,11 @@ button, input, select, textarea { font: inherit; }
 .prose { max-width: 820px; }
 .prose h2 { font-size: 1.45rem; margin: 40px 0 14px; }
 .prose p, .prose li { font-size: 1.02rem; }
+/* Plain lists in articles (news posts) get their bullets back; styled lists like .check-list keep their own look */
+.prose ul:not([class]) { list-style: disc; padding-left: 1.4em; margin: 0 0 18px; }
+.prose ol:not([class]) { list-style: decimal; padding-left: 1.6em; margin: 0 0 18px; }
+.prose ul:not([class]) li, .prose ol:not([class]) li { margin-bottom: 6px; padding-left: 2px; }
+.prose li::marker { color: var(--green); }
 
 /* Utilities */
 .text-center { text-align: center; }

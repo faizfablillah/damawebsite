@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { PaymentStatus } from "@/db/schema";
 import { ActionForm, Submit } from "@/components/form";
-import { Empty, PaymentBadge } from "@/components/ui";
+import { EligibilityBadge, Empty, PaymentBadge } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { can, CATEGORY_LABEL } from "@/lib/config";
 import { fmtDate, fmtDateTime, money, rm } from "@/lib/format";
@@ -58,6 +58,12 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
           paid. If less was received, change the amount — the remainder stays as a balance.
         </p>
       )}
+      {status === "submitted" && rows.some(({ m }) => m.category === "E") && (
+        <p className="muted-sm">
+          <strong>Students:</strong> verify the money only. The student document is checked separately in the member record by a Membership admin, and the membership
+          activates once both are done — so don&apos;t reject a payment because of the student document.
+        </p>
+      )}
       <div className="table-scroll">
         {rows.length ? (
           <table className="data-table">
@@ -99,6 +105,20 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                       </a>
                     ) : (
                       p.method.replace("_", " ")
+                    )}
+                    {m.category === "E" && (
+                      <div className="muted-sm" style={{ marginTop: 4 }}>
+                        {m.studentProofKey ? (
+                          <a href={`/files/${m.studentProofKey.split("/").map(encodeURIComponent).join("/")}`} target="_blank">
+                            Student document
+                          </a>
+                        ) : (
+                          "No student document"
+                        )}
+                        <div>
+                          <EligibilityBadge status={m.eligibilityStatus} />
+                        </div>
+                      </div>
                     )}
                   </td>
                   <td>

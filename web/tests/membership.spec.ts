@@ -85,6 +85,10 @@ test("student applies, pays, is verified and approved", async ({ page }) => {
   await login(page, ADMIN);
   await page.goto("/admin/payments");
   const row = page.getByRole("row", { name: /Aina Student/ });
+  // Finance sees the student document and that the check is someone else's job
+  await expect(row.getByRole("link", { name: "Student document" })).toBeVisible();
+  await expect(row.getByText("Eligibility check pending")).toBeVisible();
+  await expect(page.getByText("verify the money only")).toBeVisible();
   await row.getByRole("button", { name: "Verify" }).click();
   await expect(page.getByText(/Verified\. Receipt MY\/MEM\/\d{4}\/0001 issued/)).toBeVisible();
   await lastMail(STUDENT, "awaitingEligibility");

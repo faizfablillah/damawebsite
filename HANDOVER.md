@@ -251,6 +251,7 @@ Known limitations: changing tier means a new application and new Member ID; corp
 
 ### Done (history)
 
+- [x] 13 Oct — Admin → Payments shows the student document and student-check status on student payments, with a note that Finance verifies the money only (a student payment was rejected on 13 Oct for a missing document that had in fact been uploaded; verifying a student payment never activates the membership before the student check is approved).
 - [x] 12 Oct — **public launch**; Vercel Web Analytics added (visitors + sign-up step events).
 - [x] 4 Oct — deployed for board testing (Vercel + Supabase, Singapore).
 - [x] 6 Oct — first production runs: individual (Faiz), corporate (Faiz's Gmail), Datin's individual journey.

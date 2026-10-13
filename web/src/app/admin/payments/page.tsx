@@ -8,7 +8,7 @@ import { requireAdmin } from "@/lib/auth";
 import { can, CATEGORY_LABEL } from "@/lib/config";
 import { studentCheckDone } from "@/lib/membership";
 import { fmtDate, fmtDateTime, money, rm } from "@/lib/format";
-import { rejectPaymentAction, verifyPaymentAction } from "../actions";
+import { rejectPaymentAction, reopenPaymentAction, verifyPaymentAction } from "../actions";
 import { rejectEventPaymentAction, verifyEventPaymentAction } from "../events/actions";
 
 const TABS: { key: PaymentStatus; label: string }[] = [
@@ -34,6 +34,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
     .orderBy(status === "submitted" ? schema.payments.createdAt : desc(schema.payments.createdAt))
     .limit(300);
   const canPay = can(admin.role, "payments");
+  const canReopen = can(admin.role, "admins"); // super admins
   const eventRows = await db
     .select({ p: schema.eventPayments, r: schema.eventRegistrations, e: schema.events })
     .from(schema.eventPayments)
@@ -152,6 +153,15 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                           </div>
                         )}
                         {p.rejectReason && <div className="muted-sm">{p.rejectReason}</div>}
+                        {p.status === "rejected" && canReopen && !["paid", "cancelled"].includes(o.status) && !["rejected", "cancelled"].includes(m.status) && (
+                          <details className="action" style={{ marginTop: 8 }}>
+                            <summary>Reopen payment</summary>
+                            <p className="muted-sm">Rejected by mistake? Puts it back in To verify with the same proof, date and reference. The member is not emailed.</p>
+                            <ActionForm action={reopenPaymentAction.bind(null, p.id)} className="inline-form">
+                              <Submit className="btn btn--light btn--xs">Reopen for verification</Submit>
+                            </ActionForm>
+                          </details>
+                        )}
                       </>
                     )}
                   </td>

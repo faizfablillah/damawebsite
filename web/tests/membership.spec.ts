@@ -241,9 +241,13 @@ test("a super admin reopens a payment rejected by mistake, and Finance verifies 
   const noticesBefore = mails(ADMIN, "staffNotice").length;
   const memberMailsBefore = mails(email).length;
 
+  // Reopen is offered in the member record and on Payments → Rejected; use the list
   await page.goto("/admin/payments?status=rejected");
   await page.getByRole("row", { name: /Oops Reject/ }).getByRole("link", { name: "Oops Reject" }).click();
-  await page.getByText("Reopen payment").click();
+  await expect(page).toHaveURL(/\/admin\/members\//);
+  await expect(page.getByText("Reopen payment")).toBeVisible();
+  await page.goto("/admin/payments?status=rejected");
+  await page.getByRole("row", { name: /Oops Reject/ }).getByText("Reopen payment").click();
   await page.getByRole("button", { name: "Reopen for verification" }).click();
   await expect(page.getByText("Payment reopened.")).toBeVisible();
   // Finance is told again; the member isn't emailed

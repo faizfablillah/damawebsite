@@ -29,7 +29,7 @@ ${cta ? `<p style="margin:28px 0"><a href="${cta.url}" style="background:#00906d
 }
 
 const p = (s: string) => `<p style="margin:0 0 12px">${s}</p>`;
-const textOf = (html: string) => html.replace(/<br\s*\/?>/g, "\n").replace(/<\/p>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\n{3,}/g, "\n\n").trim();
+const textOf = (html: string) => html.replace(/<br\s*\/?>/g, "\n").replace(/<\/p>/g, "\n\n").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\n{3,}/g, "\n\n").trim();
 
 function mail(title: string, paragraphs: string[], cta?: { label: string; url: string }): Mail {
   const body = paragraphs.map(p).join("");

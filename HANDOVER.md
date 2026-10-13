@@ -189,7 +189,14 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
 
 ## 9. Open items / next steps
 
-### Where things stand (11 Oct 2026, evening)
+### Where things stand (13 Oct 2026, end of day)
+
+- **Members:** 34 active (incl. 1 corporate); 6 applications with no payment yet (5 individual, 1 Corporate Plus RM 3,500); a couple of payments waiting for Peggy. Still only Peggy has an admin role, so **student checks go to admin@** until Eva gets Membership admin (~19 Oct, or earlier).
+- **Salini (UKM student, EMYSL26-0001)** resolved: wrongly rejected for a "missing" student ID she had uploaded; clarification email sent 13 Oct, payment reopened and verified, active 13 Oct 2026 – 12 Oct 2027. Led to the student-first order and the Reopen button (Done history below).
+- **WDS APAC 2026 done for launch week:** member email with banner (34/34 sent, 0 failures), LinkedIn post, Alina (WDS) updated with coverage links, delegates confirmed by WDS. Internal notes in the git-ignored WDS folder README.
+- **Next:** follow up the 6 unpaid applications (Corporate Plus first); add a Finance guide slide for the student-first order + Reopen and resend Peggy the PDF; Wed 14 Oct join video; Thu/Fri Poster 3.
+
+### Where things stood (11 Oct 2026, evening)
 
 The system is **production-ready apart from the launch steps below**. Live at https://dama.org.my with: membership (student / individual / corporate, bank transfer + receipts), events (free/paid, members-only, partner events), news, announcements, nightly backups + alert emails, security hardening, email from `info@dama.org.my` (Zoho, SPF/DKIM/DMARC pass, lands in Gmail inbox). First partner content is live: World Data Summit APAC 2026 (event + news post, 29–30 Oct; member promo code shown to members only). Test data was removed on 10 Oct 2026; production now holds real data only: **10 active members** (11 Oct evening; IMY…26-0001 to 0009 are the board, 0010 the first member from outside the board; all individual), all of them Pioneer Members (240 of 250 Pioneer spots left). Admin roles: admin@dama.org.my super admin, **Peggy Finance** (11 Oct). Eva (0009), Iffah (0002) and Quak (0005) are members, so their roles can be given any time. Public launch planned for Mon 12 Oct 2026.
 
@@ -203,7 +210,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 | Sun 11 Oct | Faiz asked Iffah to add him as **Content admin** on the DAMA LinkedIn page (Admin tools → Manage admins → Add admin); no reply yet. Fallback: post from Faiz's personal profile tagging @DAMA, board reshares, the page reshares later | Faiz / Iffah |
 | Mon 12 Oct, 9 am | **Public launch**: LinkedIn post with **Poster 1** + the drafted launch text; board reshares; WhatsApp groups/Status with **Poster 2**. Ask DAMA International to list https://dama.org.my | Faiz / Programs |
 | Mon 12 Oct onwards | Watch Admin → Email log and Admin → Payments daily. The daily job's alert email reports any failed emails | Faiz, Peggy |
-| Tue 13 Oct | **WDS APAC 2026**: LinkedIn post + Admin → Announce → Active members (text drafted 9 Oct; run the 4 checks in the drafts file first). Summit is 29–30 Oct | Faiz / Programs |
+| Done 13 Oct | **WDS APAC 2026**: LinkedIn post + Admin → Announce → Active members (text drafted 9 Oct; run the 4 checks in the drafts file first). Summit is 29–30 Oct | Faiz / Programs |
 | Wed 14 Oct | LinkedIn: "six simple steps" how-to-join **video** (LinkedIn can't mix photos and video in one post) | Faiz / Programs |
 | Thu/Fri 15–16 Oct | Reminder post with **Poster 3**, optionally thanking the first members | Faiz / Programs |
 | When convenient | Old Gmail: forward info.damamalaysia@gmail.com → info@dama.org.my; give Eva access to info@ in Zoho | Faiz |

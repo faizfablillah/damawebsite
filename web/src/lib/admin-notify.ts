@@ -5,6 +5,7 @@ import { ADMIN_ROLES, APP_URL, can, type Permission } from "./config";
 import { sendEmail, templates } from "./email";
 import { later } from "./later";
 import { fmtDateTime, rm } from "./format";
+import { readyToVerify } from "./queries";
 
 // Tells the back office when something needs them: one email as each item arrives, and a morning
 // summary of everything still waiting. Payments go to roles with "payments" (Finance, super admins);
@@ -48,7 +49,7 @@ async function pendingWork(): Promise<DigestSection[]> {
       .innerJoin(schema.memberships, eq(schema.orders.membershipId, schema.memberships.id))
       .leftJoin(schema.users, eq(schema.memberships.userId, schema.users.id))
       .leftJoin(schema.organisations, eq(schema.memberships.organisationId, schema.organisations.id))
-      .where(eq(schema.payments.status, "submitted"))
+      .where(readyToVerify())
       .orderBy(asc(schema.payments.createdAt)),
     db
       .select({ p: schema.eventPayments, name: schema.eventRegistrations.name, event: schema.events.title })

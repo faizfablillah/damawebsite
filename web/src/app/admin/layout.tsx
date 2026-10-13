@@ -3,6 +3,7 @@ import { getDb, schema } from "@/db";
 import { requireAdmin } from "@/lib/auth";
 import { can, ROLE_LABEL } from "@/lib/config";
 import { refreshStatuses } from "@/lib/membership";
+import { readyToVerify } from "@/lib/queries";
 import { AdminNav } from "@/components/admin-nav";
 import { Flash } from "@/components/flash";
 
@@ -13,7 +14,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   await refreshStatuses();
   const db = await getDb();
   const [[payments], [eligibility], [leads], [seatReqs]] = await Promise.all([
-    db.select({ n: count() }).from(schema.payments).where(eq(schema.payments.status, "submitted")),
+    db
+      .select({ n: count() })
+      .from(schema.payments)
+      .innerJoin(schema.orders, eq(schema.payments.orderId, schema.orders.id))
+      .innerJoin(schema.memberships, eq(schema.orders.membershipId, schema.memberships.id))
+      .where(readyToVerify()),
     db
       .select({ n: count() })
       .from(schema.memberships)

@@ -7,6 +7,7 @@ import { adminHome, can } from "@/lib/config";
 import { Notice } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/form";
 import { addDays, fmtDateTime, rm, todayKL } from "@/lib/format";
+import { readyToVerify } from "@/lib/queries";
 import { runDailyAction } from "./actions";
 
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
@@ -29,7 +30,12 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       .from(schema.memberships)
       .where(inArray(schema.memberships.status, ["active", "grace"]))
       .groupBy(schema.memberships.category),
-    db.select({ n: count(), total: sum(schema.payments.amount) }).from(schema.payments).where(eq(schema.payments.status, "submitted")),
+    db
+      .select({ n: count(), total: sum(schema.payments.amount) })
+      .from(schema.payments)
+      .innerJoin(schema.orders, eq(schema.payments.orderId, schema.orders.id))
+      .innerJoin(schema.memberships, eq(schema.orders.membershipId, schema.memberships.id))
+      .where(readyToVerify()),
     db.select({ n: count() }).from(schema.memberships).where(and(eq(schema.memberships.category, "E"), eq(schema.memberships.eligibilityStatus, "pending"), eq(schema.memberships.status, "pending"))),
     db.select({ n: count() }).from(schema.organisations).where(inArray(schema.organisations.pipelineStatus, ["new_lead", "pic_contacted", "invoice_sent", "pending_payment", "payment_review"])),
     db

@@ -65,44 +65,50 @@ test("student applies, pays, is verified and approved", async ({ page }) => {
   await submitPayment(page, "25", "AMB-STU-001");
   await expect(page.getByText("Payment under review")).toBeVisible();
 
-  // The super admin is told about the student check and the payment as each arrives…
+  // The student check goes to the Membership admins at once; the payment is held back from Finance until it's approved
   // (emails go out just after the page responds, so wait for them)
-  await expect.poll(() => mails(ADMIN, "staffNotice").length).toBe(2);
-  const notices = mails(ADMIN, "staffNotice");
-  expect(notices.map((m) => m.subject)).toEqual(["Student check: Aina Student", "Payment to verify: RM 25.00 from Aina Student"]);
-  expect(notices[1].text).toContain("AMB-STU-001");
-  expect(notices[1].text).toContain("DAMA MBRP EDU Aina Student");
-  expect(linkIn(notices[1])).toBe("/admin/payments");
-  // …and the morning summary lists what is still waiting
+  await expect.poll(() => mails(ADMIN, "staffNotice").length).toBe(1);
+  expect(mails(ADMIN, "staffNotice")[0].subject).toBe("Student check: Aina Student");
+  expect((await lastMail(STUDENT, "paymentSubmitted")).text).toContain("first check your proof of student status");
+  // …and the morning summary lists only the student check
   const daily = await page.request.get("/api/cron/daily", { headers: { Authorization: "Bearer test-cron-secret" } });
   expect((await daily.json()).staffDigests).toBe(1);
   const digest = await lastMail(ADMIN, "staffDigest");
-  expect(digest.subject).toBe("DAMA admin: 2 items waiting for you");
-  expect(digest.text).toContain("Membership payments to verify (1)");
+  expect(digest.subject).toBe("DAMA admin: 1 item waiting for you");
   expect(digest.text).toContain("Student checks (1)");
+  expect(digest.text).not.toContain("Membership payments to verify");
 
-  // Admin verifies payment, then approves eligibility
+  // Payments: the student's payment waits for the student check and can't be verified yet
   await login(page, ADMIN);
   await page.goto("/admin/payments");
   const row = page.getByRole("row", { name: /Aina Student/ });
-  // Finance sees the student document and that the check is someone else's job
   await expect(row.getByRole("link", { name: "Student document" })).toBeVisible();
-  await expect(row.getByText("Eligibility check pending")).toBeVisible();
-  await expect(page.getByText("verify the money only")).toBeVisible();
-  await row.getByRole("button", { name: "Verify" }).click();
-  await expect(page.getByText(/Verified\. Receipt MY\/MEM\/\d{4}\/0001 issued/)).toBeVisible();
-  await lastMail(STUDENT, "awaitingEligibility");
+  await expect(row.getByText("Waiting for student check")).toBeVisible();
+  await expect(row.getByRole("button", { name: "Verify" })).toHaveCount(0);
 
-  await page.goto("/admin/members?category=E");
-  await page.getByRole("link", { name: "Aina Student" }).click();
+  // Approve the student document first…
+  await row.getByRole("link", { name: "Open the member record" }).click();
   await expect(page.getByText("Valid", { exact: true })).toBeVisible(); // .edu.my check
+  await expect(page.getByText("Waiting for the student check above")).toBeVisible();
   await page.getByRole("button", { name: "Approve eligibility" }).click();
   await expect(page.getByText("Eligibility approved.")).toBeVisible();
+  // …which releases the payment to Finance
+  await expect.poll(() => mails(ADMIN, "staffNotice").length).toBe(2);
+  const notice = mails(ADMIN, "staffNotice")[1];
+  expect(notice.subject).toBe("Payment to verify: RM 25.00 from Aina Student");
+  expect(notice.text).toContain("AMB-STU-001");
+  expect(notice.text).toContain("DAMA MBRP EDU Aina Student");
+  expect(linkIn(notice)).toBe("/admin/payments");
+
+  // Finance verifies the money: receipt, Member ID and welcome in one go
+  await page.goto("/admin/payments");
+  await page.getByRole("row", { name: /Aina Student/ }).getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByText(/Verified\. Receipt MY\/MEM\/\d{4}\/0001 issued/)).toBeVisible();
   const code = `EMYSL${yy}-0001`;
-  await expect(page.getByText(code).first()).toBeVisible();
   const welcome = await lastMail(STUDENT, "welcome");
   expect(welcome.text).toContain(code);
   expect(welcome.attachments[0]).toMatch(/DAMA Receipt MY-MEM-\d{4}-0001\.pdf/);
+  expect(mails(STUDENT, "awaitingEligibility")).toHaveLength(0);
 
   // Member sees the card and can download the receipt
   await login(page, STUDENT);
@@ -112,6 +118,35 @@ test("student applies, pays, is verified and approved", async ({ page }) => {
   const pdf = await page.request.get(href!);
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
   expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
+});
+
+test("a student who isn't eligible: the payment is rejected with a refund note, no Member ID", async ({ page }) => {
+  const email = "budi@student.usm.edu.my";
+  await signup(page, { tier: "student", name: "Budi Student", email, state: "PP", organisation: "USM" });
+  await verifyEmail(page, email);
+  await page.getByLabel("Expected graduation year").fill("2026");
+  await page.getByLabel("Proof of student status").setInputFiles(PNG);
+  await page.getByLabel(/I'm applying for/).check();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await submitPayment(page, "25", "AMB-STU-002");
+  await expect(page.getByText("Payment under review")).toBeVisible();
+
+  await login(page, ADMIN);
+  await page.goto("/admin/members?category=E");
+  await page.getByRole("link", { name: "Budi Student" }).click();
+  await page.getByText("Reject eligibility").click();
+  await page.getByLabel("Reason (sent to the student)").fill("The document is a 2019 offer letter, not current proof.");
+  await page.getByRole("button", { name: "Reject", exact: true }).click();
+  await expect(page.getByText("Eligibility rejected and the student has been emailed.")).toBeVisible();
+  await expect(page.getByText("Rejected: Student check not approved — refund due")).toBeVisible();
+
+  const mail = await lastMail(email, "eligibilityRejected");
+  expect(mail.text).toContain("refund the RM 25.00");
+  expect(mails(email, "paymentRejected")).toHaveLength(0);
+  // Finance was never asked to verify it
+  expect(mails(ADMIN, "staffNotice").some((m) => m.subject === "Payment to verify: RM 25.00 from Budi Student")).toBe(false);
+  await page.goto("/admin/payments?status=rejected");
+  await expect(page.getByRole("row", { name: /Budi Student/ })).toContainText("refund due");
 });
 
 test("individual part-pays, then pays the balance and is activated", async ({ page }) => {

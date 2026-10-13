@@ -9,7 +9,7 @@ import { ADMIN_ROLES, can, CATEGORY_LABEL, isAcademicEmail, stateName, TIERS } f
 import { fmtDate, fmtDateTime, money, rm, todayKL } from "@/lib/format";
 import { loadMembership } from "@/lib/queries";
 import { pioneerStatus } from "@/lib/pioneer";
-import { orderBalance, orderTotal, seatCode } from "@/lib/membership";
+import { orderBalance, orderTotal, seatCode, studentCheckDone } from "@/lib/membership";
 import {
   adminSeatAction,
   discountAction,
@@ -311,7 +311,8 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
                                     </a>
                                   </div>
                                 )}
-                                {p.status === "submitted" && canPay && (
+                                {p.status === "submitted" && canPay && !studentCheckDone(m) && <div className="muted-sm">Waiting for the student check above</div>}
+                                {p.status === "submitted" && canPay && studentCheckDone(m) && (
                                   <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
                                     <ActionForm action={verifyPaymentAction.bind(null, p.id)} className="inline-form">
                                       <input className="input" name="amount" defaultValue={money(p.amount).replace(/,/g, "")} aria-label="Amount received (RM)" style={{ width: 100 }} />
@@ -331,7 +332,7 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
                     </table>
                   </div>
                 )}
-                {open && canPay && (
+                {open && canPay && studentCheckDone(m) && (
                   <>
                     <details className="action">
                       <summary>Record a payment received outside the portal</summary>

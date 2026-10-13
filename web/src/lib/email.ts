@@ -121,8 +121,8 @@ export const templates = {
     mail("We've received your application", [`Hi ${esc(name)},`, `Thank you for applying for <strong>${esc(tierLabel)}</strong> membership.`, `To complete your application, please transfer <strong>${amount}</strong> using the reference <strong>${esc(reference)}</strong>, then upload your payment receipt in the member portal.`], { label: "Go to payment", url: `${APP_URL}/portal` }),
   corporateLead: (name: string, org: string) =>
     mail("Thank you for your interest in Corporate Membership", [`Hi ${esc(name)},`, `Thank you for registering <strong>${esc(org)}</strong>'s interest in DAMA Corporate Membership.`, "Our Corporate Membership PIC will reach out within 3–5 business days. You can also complete payment at any time from the member portal."], { label: "Open member portal", url: `${APP_URL}/portal` }),
-  paymentSubmitted: (name: string, amount: string) =>
-    mail("Payment details received", [`Hi ${esc(name)},`, `We've received your payment details for <strong>${amount}</strong>. Our team will verify the transfer against our bank records, usually within 3 business days.`, "You'll receive your official receipt by email once it's verified."], { label: "View status", url: `${APP_URL}/portal` }),
+  paymentSubmitted: (name: string, amount: string, student = false) =>
+    mail("Payment details received", [`Hi ${esc(name)},`, `We've received your payment details for <strong>${amount}</strong>. ${student ? "Our team will first check your proof of student status, then verify the transfer against our bank records" : "Our team will verify the transfer against our bank records"}, usually within 3 business days.`, "You'll receive your official receipt by email once it's verified."], { label: "View status", url: `${APP_URL}/portal` }),
   paymentRejected: (name: string, amount: string, reason: string) =>
     mail("We couldn't verify your payment", [`Hi ${esc(name)},`, `We were unable to verify your payment of <strong>${amount}</strong>.`, `Reason: ${esc(reason)}`, "Please check the details and submit your payment proof again from the member portal, or reply to this email if you need help."], { label: "Open member portal", url: `${APP_URL}/portal` }),
   partPayment: (name: string, received: string, balance: string, receiptNo: string) =>
@@ -137,8 +137,14 @@ export const templates = {
     mail("Your membership has been renewed", [`Hi ${esc(name)},`, `Thank you for renewing. Member ID <strong>${esc(memberCode)}</strong> is now valid from ${start} to ${end}.`, "Your receipt is attached."], { label: "Open member portal", url: `${APP_URL}/portal` }),
   corporateActive: (name: string, org: string, memberCode: string, seats: number, end: string) =>
     mail("Your Corporate Membership is active", [`Hi ${esc(name)},`, `<strong>${esc(org)}</strong>'s Corporate Membership (${esc(memberCode)}) is now active until ${end}.`, `Your membership includes <strong>${seats} seats</strong>. Please add your team members from the organisation page so they can access member benefits.`, "Your receipt is attached."], { label: "Add your team", url: `${APP_URL}/portal` }),
-  eligibilityRejected: (name: string, reason: string) =>
-    mail("Update on your student membership application", [`Hi ${esc(name)},`, "Unfortunately we couldn't confirm your student eligibility.", `Reason: ${esc(reason)}`, `If you think this is a mistake, please reply to this email or contact us at ${ORG.email}.`]),
+  eligibilityRejected: (name: string, reason: string, refund?: string) =>
+    mail("Update on your student membership application", [
+      `Hi ${esc(name)},`,
+      "Unfortunately we couldn't confirm your student eligibility.",
+      `Reason: ${esc(reason)}`,
+      ...(refund ? [`We'll refund the <strong>${refund}</strong> you transferred to the bank account it came from.`] : []),
+      `If you think this is a mistake, please reply to this email or contact us at ${ORG.email}.`,
+    ]),
   seatInvite: (name: string, org: string, seatCode: string) =>
     mail(`You've been added to ${org}'s DAMA membership`, [`Hi ${esc(name)},`, `<strong>${esc(org)}</strong> has added you to its DAMA Corporate Membership (seat ${esc(seatCode)}).`, "Create your free account with this email address to access your member page, events and resources."], { label: "Create your account", url: `${APP_URL}/signup?seat=1` }),
   renewalReminder: (name: string, memberCode: string, end: string, days: number) =>

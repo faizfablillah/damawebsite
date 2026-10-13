@@ -6,6 +6,7 @@ import { ActionForm, Submit } from "@/components/form";
 import { EligibilityBadge, Empty, PaymentBadge } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { can, CATEGORY_LABEL } from "@/lib/config";
+import { studentCheckDone } from "@/lib/membership";
 import { fmtDate, fmtDateTime, money, rm } from "@/lib/format";
 import { rejectPaymentAction, verifyPaymentAction } from "../actions";
 import { rejectEventPaymentAction, verifyEventPaymentAction } from "../events/actions";
@@ -60,8 +61,8 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
       )}
       {status === "submitted" && rows.some(({ m }) => m.category === "E") && (
         <p className="muted-sm">
-          <strong>Students:</strong> verify the money only. The student document is checked separately in the member record by a Membership admin, and the membership
-          activates once both are done — so don&apos;t reject a payment because of the student document.
+          <strong>Students:</strong> a Membership admin checks the student document first (in the member record). Until then the payment shows &ldquo;Waiting for student
+          check&rdquo; and can&apos;t be verified; Finance is emailed once it&apos;s ready. Then verify the money only.
         </p>
       )}
       <div className="table-scroll">
@@ -122,7 +123,14 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                     )}
                   </td>
                   <td>
-                    {status === "submitted" && canPay ? (
+                    {status === "submitted" && !studentCheckDone(m) ? (
+                      <div style={{ minWidth: 200 }}>
+                        <strong>Waiting for student check</strong>
+                        <div className="muted-sm">
+                          <Link href={`/admin/members/${m.id}`}>Open the member record</Link> to approve or reject the student document first.
+                        </div>
+                      </div>
+                    ) : status === "submitted" && canPay ? (
                       <div style={{ display: "grid", gap: 8, minWidth: 250 }}>
                         <ActionForm action={verifyPaymentAction.bind(null, p.id)} className="inline-form">
                           <input className="input" name="amount" defaultValue={money(p.amount).replace(/,/g, "")} aria-label="Amount received (RM)" style={{ width: 100 }} />

@@ -1,7 +1,12 @@
 import "server-only";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { Membership, Order, Organisation, Payment, Receipt, Seat, User } from "@/db/schema";
+
+// A submitted membership payment Finance can act on: students wait until their student check is approved.
+// Needs memberships joined in. (Same rule as studentCheckDone in membership.ts.)
+export const readyToVerify = () =>
+  and(eq(schema.payments.status, "submitted"), or(ne(schema.memberships.category, "E"), eq(schema.memberships.eligibilityStatus, "approved")));
 
 export type OrderBundle = { order: Order; payments: Payment[]; receipts: Receipt[] };
 export type MembershipBundle = {

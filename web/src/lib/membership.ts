@@ -248,6 +248,28 @@ export async function createRenewalOrder(membershipId: string, actorId: string) 
 
 // ---------- payments ----------
 
+// Students: Finance verifies the money only after a Membership admin has approved the student document
+export const NOT_ELIGIBLE_REASON = "Student check not approved — refund due";
+
+export const studentCheckDone = (m: Pick<Membership, "category" | "eligibilityStatus">) => m.category !== "E" || m.eligibilityStatus === "approved";
+
+async function notifyPaymentToVerify(owner: Owner, m: Membership, o: Order, p: Payment) {
+  const payer = owner.organisation?.name ?? owner.name;
+  await notifyStaff(
+    "payments",
+    `Payment to verify: ${rm(p.amount)} from ${payer}`,
+    [
+      ["From", owner.organisation ? `${payer} (${owner.name})` : payer],
+      ["For", `${CATEGORY_LABEL[m.category]} — ${TIERS[m.tier].label}${o.kind === "renewal" ? " (renewal)" : ""}`],
+      ["Amount", `${rm(p.amount)} of ${rm(orderBalance(o))} due`],
+      ["Transfer date", fmtDate(p.paymentDate)],
+      ["Bank reference", p.reference],
+      ["Expected reference", o.paymentReference],
+    ],
+    "/admin/payments",
+  );
+}
+
 export async function submitPayment(input: {
   orderId: string;
   userId: string;
@@ -281,26 +303,23 @@ export async function submitPayment(input: {
     await audit(input.userId, "payment.submitted", "payment", p.id, { amount: input.amount }, tx);
     return { payment: p, membership: m, owner, order: o };
   });
-  await later(() => sendEmail(res.owner.email, "paymentSubmitted", templates.paymentSubmitted(res.owner.name, rm(input.amount)), {
+  await later(() => sendEmail(res.owner.email, "paymentSubmitted", templates.paymentSubmitted(res.owner.name, rm(input.amount), !studentCheckDone(res.membership)), {
     userId: res.owner.userId,
     membershipId: res.membership.id,
     organisationId: res.membership.organisationId,
   }));
-  const payer = res.owner.organisation?.name ?? res.owner.name;
-  await notifyStaff(
-    "payments",
-    `Payment to verify: ${rm(input.amount)} from ${payer}`,
-    [
-      ["From", res.owner.organisation ? `${payer} (${res.owner.name})` : payer],
-      ["For", `${CATEGORY_LABEL[res.membership.category]} — ${TIERS[res.membership.tier].label}${res.order.kind === "renewal" ? " (renewal)" : ""}`],
-      ["Amount", `${rm(input.amount)} of ${rm(orderBalance(res.order))} due`],
-      ["Transfer date", fmtDate(input.paymentDate)],
-      ["Bank reference", input.reference],
-      ["Expected reference", res.order.paymentReference],
-    ],
-    "/admin/payments",
-  );
+  // A student's payment reaches Finance only once their student check is approved (see decideEligibility)
+  if (studentCheckDone(res.membership)) await notifyPaymentToVerify(res.owner, res.membership, res.order, res.payment);
   return res.payment;
+}
+
+async function requireStudentCheck(tx: Tx, orderId: string) {
+  const [row] = await tx
+    .select({ m: schema.memberships })
+    .from(schema.orders)
+    .innerJoin(schema.memberships, eq(schema.orders.membershipId, schema.memberships.id))
+    .where(eq(schema.orders.id, orderId));
+  if (row && !studentCheckDone(row.m)) throw new BusinessError("Approve the student check in the member record first.");
 }
 
 type Activation = { kind: "new" | "renewal"; start: string; end: string };
@@ -445,6 +464,7 @@ export async function verifyPayment(paymentId: string, adminId: string, amount?:
   const result = await db.transaction(async (tx) => {
     const [p] = await tx.select().from(schema.payments).where(eq(schema.payments.id, paymentId));
     if (!p || p.status !== "submitted") throw new BusinessError("This payment has already been processed.");
+    await requireStudentCheck(tx, p.orderId);
     const [updated] = await tx
       .update(schema.payments)
       .set({ status: "verified", amount: amount ?? p.amount, verifiedBy: adminId, verifiedAt: new Date() })
@@ -473,6 +493,7 @@ export async function recordOfflinePayment(input: {
   const result = await db.transaction(async (tx) => {
     const [o] = await tx.select().from(schema.orders).where(eq(schema.orders.id, input.orderId));
     if (!o || ["paid", "cancelled"].includes(o.status)) throw new BusinessError("This order is not open for payment.");
+    await requireStudentCheck(tx, o.id);
     const [p] = await tx
       .insert(schema.payments)
       .values({
@@ -566,6 +587,7 @@ export async function decideEligibility(membershipId: string, adminId: string, a
     await audit(adminId, approve ? "eligibility.approved" : "eligibility.rejected", "membership", m.id, { note }, tx);
     let activation: Activation | null = null;
     let lastReceipt: ReceiptSnapshot | null = null;
+    let refund = 0;
     if (approve) {
       const [paidOrder] = await tx
         .select()
@@ -579,17 +601,42 @@ export async function decideEligibility(membershipId: string, adminId: string, a
         lastReceipt = r?.data ?? null;
       }
     } else {
+      // Money already sent for a rejected student is refunded outside the system; the reason says so
+      const waiting = await tx
+        .select({ id: schema.payments.id, amount: schema.payments.amount })
+        .from(schema.payments)
+        .innerJoin(schema.orders, eq(schema.payments.orderId, schema.orders.id))
+        .where(and(eq(schema.orders.membershipId, m.id), eq(schema.payments.status, "submitted")));
+      for (const w of waiting) {
+        await tx
+          .update(schema.payments)
+          .set({ status: "rejected", rejectReason: NOT_ELIGIBLE_REASON, verifiedBy: adminId, verifiedAt: new Date() })
+          .where(eq(schema.payments.id, w.id));
+        await audit(adminId, "payment.rejected", "payment", w.id, { reason: NOT_ELIGIBLE_REASON }, tx);
+        refund += w.amount;
+      }
       await tx
         .update(schema.orders)
         .set({ status: "cancelled" })
         .where(and(eq(schema.orders.membershipId, m.id), inArray(schema.orders.status, ["awaiting_payment", "pending_verification"])));
     }
     const [fresh] = await tx.select().from(schema.memberships).where(eq(schema.memberships.id, m.id));
-    return { m: fresh, activation, lastReceipt, owner: await ownerOf(tx, fresh) };
+    const [toVerify] = approve
+      ? await tx
+          .select({ p: schema.payments, o: schema.orders })
+          .from(schema.payments)
+          .innerJoin(schema.orders, eq(schema.payments.orderId, schema.orders.id))
+          .where(and(eq(schema.orders.membershipId, m.id), eq(schema.payments.status, "submitted")))
+          .orderBy(asc(schema.payments.createdAt))
+          .limit(1)
+      : [];
+    return { m: fresh, activation, lastReceipt, owner: await ownerOf(tx, fresh), toVerify, refund };
   });
   const links = { userId: res.owner.userId, membershipId: res.m.id };
+  // The student's payment was held back from Finance until now
+  if (res.toVerify) await notifyPaymentToVerify(res.owner, res.m, res.toVerify.o, res.toVerify.p);
   if (!approve) {
-    await later(() => sendEmail(res.owner.email, "eligibilityRejected", templates.eligibilityRejected(res.owner.name, note || "We could not verify your student status."), links));
+    await later(() => sendEmail(res.owner.email, "eligibilityRejected", templates.eligibilityRejected(res.owner.name, note || "We could not verify your student status.", res.refund ? rm(res.refund) : undefined), links));
   } else if (res.activation && res.m.memberCode) {
     const { activation, lastReceipt, owner, m } = res;
     await later(async () => {

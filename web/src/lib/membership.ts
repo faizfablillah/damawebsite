@@ -546,6 +546,31 @@ export async function rejectPayment(paymentId: string, adminId: string, reason: 
   }));
 }
 
+// Super admins: undo a rejection made by mistake. The payment goes back to "To verify" with its own proof,
+// date and reference, so Finance verifies it the normal way. The member isn't emailed (tell them yourself).
+export async function reopenPayment(paymentId: string, adminId: string) {
+  const db = await getDb();
+  const res = await db.transaction(async (tx) => {
+    const [p] = await tx.select().from(schema.payments).where(eq(schema.payments.id, paymentId));
+    if (!p || p.status !== "rejected") throw new BusinessError("Only a rejected payment can be reopened.");
+    const [o] = await tx.select().from(schema.orders).where(eq(schema.orders.id, p.orderId));
+    if (["paid", "cancelled"].includes(o.status)) throw new BusinessError("This order is already paid or closed, so the payment can't be reopened.");
+    const [m] = await tx.select().from(schema.memberships).where(eq(schema.memberships.id, o.membershipId));
+    if (["rejected", "cancelled"].includes(m.status)) throw new BusinessError("This application is closed.");
+    const [reopened] = await tx
+      .update(schema.payments)
+      .set({ status: "submitted", rejectReason: null, verifiedBy: null, verifiedAt: null })
+      .where(and(eq(schema.payments.id, p.id), eq(schema.payments.status, "rejected")))
+      .returning();
+    if (!reopened) throw new BusinessError("This payment has already been reopened.");
+    await tx.update(schema.orders).set({ status: "pending_verification" }).where(eq(schema.orders.id, o.id));
+    await setPipeline(tx, m.organisationId, "payment_review", ["pending_payment"]);
+    await audit(adminId, "payment.reopened", "payment", p.id, { previousReason: p.rejectReason }, tx);
+    return { p: reopened, o, m, owner: await ownerOf(tx, m) };
+  });
+  if (studentCheckDone(res.m)) await notifyPaymentToVerify(res.owner, res.m, res.o, res.p);
+}
+
 export async function setOrderDiscount(orderId: string, discount: number, adminId: string) {
   const db = await getDb();
   await db.transaction(async (tx) => {

@@ -22,6 +22,7 @@ import {
   decideSeatRequest,
   recordOfflinePayment,
   rejectPayment,
+  reopenPayment,
   runDailyTasks,
   setMembershipStatus,
   setOrderDiscount,
@@ -74,6 +75,16 @@ export async function rejectPaymentAction(paymentId: string, _: FormState, data:
   try {
     await rejectPayment(paymentId, admin.id, reason);
     return done("Payment rejected and the member has been emailed.");
+  } catch (e) {
+    return oops(e);
+  }
+}
+
+export async function reopenPaymentAction(paymentId: string, _: FormState, __: FormData): Promise<FormState> {
+  const admin = await requireAdmin("admins"); // super admins only
+  try {
+    await reopenPayment(paymentId, admin.id);
+    return done("Payment reopened. It's back in Payments → To verify; the member was not emailed.");
   } catch (e) {
     return oops(e);
   }

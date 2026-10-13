@@ -21,6 +21,7 @@ import {
   pipelineAction,
   recordPaymentAction,
   rejectPaymentAction,
+  reopenPaymentAction,
   resendEmailAction,
   seatRequestAction,
   verifyPaymentAction,
@@ -41,6 +42,7 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
   const canMembers = can(admin.role, "members");
   const canPay = can(admin.role, "payments");
   const canTerms = can(admin.role, "settings");
+  const canReopen = can(admin.role, "admins"); // super admins
 
   const [admins, emails, auditRows, notes, docs, seatReqs] = await Promise.all([
     db.select().from(schema.users).where(inArray(schema.users.role, ADMIN_ROLES)),
@@ -310,6 +312,15 @@ export default async function MemberDetail({ params }: PageProps<"/admin/members
                                       {r.receiptNo}
                                     </a>
                                   </div>
+                                )}
+                                {p.status === "rejected" && canReopen && open && (
+                                  <details className="action" style={{ marginTop: 8 }}>
+                                    <summary>Reopen payment</summary>
+                                    <p className="muted-sm">Rejected by mistake? This puts it back in Payments → To verify with the same proof, date and reference. The member is not emailed.</p>
+                                    <ActionForm action={reopenPaymentAction.bind(null, p.id)} className="inline-form">
+                                      <Submit className="btn btn--light btn--xs">Reopen for verification</Submit>
+                                    </ActionForm>
+                                  </details>
                                 )}
                                 {p.status === "submitted" && canPay && !studentCheckDone(m) && <div className="muted-sm">Waiting for the student check above</div>}
                                 {p.status === "submitted" && canPay && studentCheckDone(m) && (

@@ -224,6 +224,42 @@ test("payment proof can be rejected and resubmitted", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Pay and upload receipt" })).toBeVisible();
 });
 
+test("a super admin reopens a payment rejected by mistake, and Finance verifies it", async ({ page }) => {
+  const email = "oops@example.com";
+  await signup(page, { tier: "individual", name: "Oops Reject", email });
+  await verifyEmail(page, email);
+  await page.goto("/portal/apply?tier=individual");
+  await page.getByLabel(/I'm applying for/).check();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await submitPayment(page, "150", "AMB-OOPS-1");
+  await login(page, ADMIN);
+  await page.goto("/admin/payments");
+  let row = page.getByRole("row", { name: /Oops Reject/ });
+  await row.getByLabel("Reason").fill("Wrong reason, rejected by mistake");
+  await row.getByRole("button", { name: "Reject" }).click();
+  await expect(page.getByText("Payment rejected")).toBeVisible();
+  const noticesBefore = mails(ADMIN, "staffNotice").length;
+  const memberMailsBefore = mails(email).length;
+
+  await page.goto("/admin/payments?status=rejected");
+  await page.getByRole("row", { name: /Oops Reject/ }).getByRole("link", { name: "Oops Reject" }).click();
+  await page.getByText("Reopen payment").click();
+  await page.getByRole("button", { name: "Reopen for verification" }).click();
+  await expect(page.getByText("Payment reopened.")).toBeVisible();
+  // Finance is told again; the member isn't emailed
+  await expect.poll(() => mails(ADMIN, "staffNotice").length).toBe(noticesBefore + 1);
+  expect(mails(ADMIN, "staffNotice").at(-1)!.subject).toBe("Payment to verify: RM 150.00 from Oops Reject");
+  expect(mails(email)).toHaveLength(memberMailsBefore);
+
+  // Back in To verify with the original reference, and verifies as normal
+  await page.goto("/admin/payments");
+  row = page.getByRole("row", { name: /Oops Reject/ });
+  await expect(row).toContainText("AMB-OOPS-1");
+  await row.getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByText(/membership IMY..\d\d-\d{4} activated/)).toBeVisible();
+  await lastMail(email, "welcome");
+});
+
 test("corporate pays, gets seats, assigns and swaps a seat", async ({ page }) => {
   await signup(page, { tier: "corporate", name: "Hana HR", email: CORP, state: "SL" });
   await verifyEmail(page, CORP);

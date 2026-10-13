@@ -29,7 +29,14 @@ export default async function AnnouncePage() {
             ]}
           />
           <Field name="subject" label="Subject" required />
-          <TextArea name="message" label="Message" required hint="Plain text. Leave a blank line between paragraphs." />
+          <Field
+            name="image"
+            label="Image (optional)"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            hint="Shown at the top of the email, e.g. an event banner. JPG, PNG or WEBP, up to 1 MB; about 1200 px wide works best."
+          />
+          <TextArea name="message" label="Message" required hint="Plain text. Leave a blank line between paragraphs. Web addresses become links." />
           {Math.max(members.length, everyone.length) > DAILY_LIMIT && (
             <p className="muted-sm">Note: the email service sends about {DAILY_LIMIT} emails a day. Larger lists may be cut off, so check with Faiz before sending.</p>
           )}

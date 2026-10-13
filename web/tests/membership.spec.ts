@@ -851,12 +851,19 @@ test("announcements reach active members only", async ({ page }) => {
   await page.goto("/admin/announce");
   await page.getByLabel("Send to").selectOption("members");
   await page.getByLabel("Subject").fill("New partnership with Example University");
-  await page.getByLabel("Message").fill("We're pleased to announce a new partnership.\n\nMembers get 20% off the CDMP course.");
+  await page.getByLabel("Message").fill("We're pleased to announce a new partnership.\n\nMembers get 20% off the CDMP course: https://example.edu/cdmp.");
+  await page.getByLabel("Image (optional)").setInputFiles(PNG);
   await page.getByLabel("Send this email now").check();
   await page.getByRole("button", { name: "Send announcement" }).click();
   await expect(page.getByText(/^Sent to \d+ of \d+ recipients\.$/)).toBeVisible();
   for (const to of [STUDENT, CORP, SEAT_HOLDER]) expect((await lastMail(to, "announcement")).subject).toBe("New partnership with Example University");
   expect(mails(EVENTS_ADMIN, "announcement")).toHaveLength(0);
+  // The image travels inside the email, and the web address is a link (without the full stop)
+  const sentMail = await lastMail(STUDENT, "announcement");
+  expect(sentMail.attachments).toEqual(["image.png"]);
+  const html = fs.readFileSync(path.resolve(".data-test", "outbox", sentMail.file.replace(/\.json$/, ".html")), "utf8");
+  expect(html).toContain('src="cid:announcement-image"');
+  expect(html).toContain('<a href="https://example.edu/cdmp" style="color:#007b80">https://example.edu/cdmp</a>.');
 });
 
 test("signing up from an event page returns to the event", async ({ page }) => {

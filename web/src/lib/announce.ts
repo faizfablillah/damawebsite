@@ -44,16 +44,21 @@ export async function recipients(audience: Audience): Promise<{ email: string; n
   return [...out.values()];
 }
 
-export async function sendAnnouncement(adminId: string, audience: Audience, subject: string, message: string) {
+export type AnnouncementImage = { content: Buffer; contentType: string; ext: string };
+
+export async function sendAnnouncement(adminId: string, audience: Audience, subject: string, message: string, image?: AnnouncementImage | null) {
   const list = await recipients(audience);
   const footer =
     audience === "members"
       ? "You're receiving this as a DAMA Kuala Lumpur & Selangor member."
       : "You're receiving this because you have an account with DAMA Kuala Lumpur & Selangor and agreed to receive updates. Reply to this email to stop receiving them.";
+  const cid = image ? "announcement-image" : undefined;
+  const mail = templates.announcement(subject, message, footer, cid);
+  const attachments = image ? [{ filename: `image.${image.ext}`, content: image.content, contentType: image.contentType, cid }] : [];
   let sent = 0;
   for (const r of list) {
-    if (await sendEmail(r.email, "announcement", templates.announcement(subject, message, footer), { userId: r.userId })) sent++;
+    if (await sendEmail(r.email, "announcement", mail, { userId: r.userId }, attachments)) sent++;
   }
-  await audit(adminId, "announcement.sent", "announcement", null, { audience, subject, recipients: list.length, sent });
+  await audit(adminId, "announcement.sent", "announcement", null, { audience, subject, recipients: list.length, sent, image: !!image });
   return { recipients: list.length, sent };
 }

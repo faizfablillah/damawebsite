@@ -8,7 +8,8 @@ import { APP_URL, ORG } from "./config";
 // (e.g. Gmail: smtp.gmail.com + app password). Otherwise writes each email to DATA_DIR/outbox so it
 // can be inspected during development and tests.
 
-type Attachment = { filename: string; content: Buffer; contentType: string };
+// `cid` = shown inside the email (an <img src="cid:…">) instead of as a separate attachment
+export type Attachment = { filename: string; content: Buffer; contentType: string; cid?: string };
 type Mail = { subject: string; html: string; text: string };
 type Links = { userId?: string | null; membershipId?: string | null; organisationId?: string | null };
 
@@ -41,7 +42,13 @@ type EventInfo = { title: string; when: string; venue: string | null; slug: stri
 const eventLines = (e: EventInfo) => `<strong>${esc(e.title)}</strong><br>${esc(e.when)}${e.venue ? `<br>${esc(e.venue)}` : ""}`;
 const eventUrl = (e: EventInfo) => `${APP_URL}/events/${e.slug}`;
 // Plain text typed by an admin → escaped paragraphs (blank line = new paragraph)
-const paragraphs = (text: string) => text.trim().split(/\r?\n\s*\r?\n/).map((para) => esc(para).replace(/\r?\n/g, "<br>"));
+// Web addresses in typed text become links (trailing punctuation stays outside the link)
+const linkify = (escaped: string) =>
+  escaped.replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)'"]/g, (url) => `<a href="${url}" style="color:#007b80">${url}</a>`);
+const paragraphs = (text: string) => text.trim().split(/\r?\n\s*\r?\n/).map((para) => linkify(esc(para)).replace(/\r?\n/g, "<br>"));
+// An image carried inside the email (see Attachment.cid), full width under the title
+const inlineImage = (cid: string) =>
+  `<img src="cid:${esc(cid)}" alt="" width="544" style="display:block;width:100%;max-width:544px;height:auto;border:0;border-radius:8px;margin:0 0 16px">`;
 
 export const templates = {
   eventConfirmed: (name: string, e: EventInfo, onlineUrl: string | null) =>
@@ -86,8 +93,8 @@ export const templates = {
       label: "View event",
       url: eventUrl(e),
     }),
-  announcement: (subject: string, message: string, footer: string) =>
-    mail(subject, [...paragraphs(message), `<span style="color:#6b7280;font-size:13px">${esc(footer)}</span>`]),
+  announcement: (subject: string, message: string, footer: string, imageCid?: string) =>
+    mail(subject, [...(imageCid ? [inlineImage(imageCid)] : []), ...paragraphs(message), `<span style="color:#6b7280;font-size:13px">${esc(footer)}</span>`]),
   adminAlert: (problems: string[]) =>
     mail(
       "DAMA website: something needs attention",
@@ -196,6 +203,7 @@ async function sendWithGraph(to: string, m: Mail, attachments: Attachment[]) {
           name: a.filename,
           contentType: a.contentType,
           contentBytes: a.content.toString("base64"),
+          ...(a.cid ? { isInline: true, contentId: a.cid } : {}),
         })),
       },
       saveToSentItems: false,

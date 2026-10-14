@@ -189,7 +189,14 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
 
 ## 9. Open items / next steps
 
-### Where things stand (13 Oct 2026, end of day)
+### Where things stand (14 Oct 2026, end of day)
+
+- **Members:** 43 active (41 individual, 1 student, 1 corporate); 8 applications pending (7 individual, 1 Corporate Plus). 1 payment waiting for Peggy (Lau Swee Kiong, RM 150, sent 14 Oct 7:21 am). 56 accounts, about 206 Pioneer spots left, 0 failed emails ever. No event registrations yet. Admin roles still only admin@ (super admin) and Peggy (Finance).
+- **Supabase security alert fixed (14 Oct):** Data API switched off, every table locked (migration `0005_lock_down_tables`, commit 0cca292); Security Advisor now 0 errors, 0 warnings. The 21 "Info" notes ("RLS enabled, no policy") are intentional: leave them, don't add policies. No sign the open access was ever used. Details in Done history and Gotchas.
+- **To confirm on 15 Oct:** the 7 am daily job + nightly backup ran, the first file upload after the lock works, and the 06:00 Hermes brief arrived.
+- **Next (carried over):** follow up the unpaid applications (Corporate Plus first); Finance guide slide for the student-first order + Reopen and resend Peggy the PDF; join video post (planned Wed 14 Oct); Thu/Fri Poster 3; Eva's Membership admin role (~19 Oct, or earlier).
+
+### Where things stood (13 Oct 2026, end of day)
 
 - **Members:** 34 active (incl. 1 corporate); 6 applications with no payment yet (5 individual, 1 Corporate Plus RM 3,500); a couple of payments waiting for Peggy. Still only Peggy has an admin role, so **student checks go to admin@** until Eva gets Membership admin (~19 Oct, or earlier).
 - **Salini (UKM student, EMYSL26-0001)** resolved: wrongly rejected for a "missing" student ID she had uploaded; clarification email sent 13 Oct, payment reopened and verified, active 13 Oct 2026 – 12 Oct 2027. Led to the student-first order and the Reopen button (Done history below).

@@ -464,6 +464,29 @@ test("settings, exports and roles", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Payments", exact: true })).toBeVisible();
   await page.goto("/admin/settings");
   await expect(page.getByText("doesn't include that page")).toBeVisible();
+
+  // Membership admins work on members but can't email everyone or download the data
+  await login(page, ADMIN);
+  await page.goto("/admin/admins");
+  await page.getByLabel("Account email").fill(INDIVIDUAL);
+  await page.getByLabel("Role").selectOption("membership_admin");
+  await page.getByRole("button", { name: "Save role" }).click();
+  await expect(page.getByText("Ravi Kumar is now membership admin")).toBeVisible();
+  await login(page, INDIVIDUAL);
+  await page.goto("/admin/members");
+  await expect(page.getByRole("link", { name: "Announce" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Export" })).toHaveCount(0);
+  await page.goto("/admin/announce");
+  await expect(page.getByText("doesn't include that page")).toBeVisible();
+  await page.goto("/admin/export");
+  await expect(page.getByText("doesn't include that page")).toBeVisible();
+  for (const kind of ["members", "payments", "seats"]) expect((await page.request.get(`/admin/export/${kind}`)).status()).toBe(403);
+  await login(page, ADMIN);
+  await page.goto("/admin/admins");
+  await page.getByLabel("Account email").fill(INDIVIDUAL);
+  await page.getByLabel("Role").selectOption("finance");
+  await page.getByRole("button", { name: "Save role" }).click();
+  await expect(page.getByText("Ravi Kumar is now finance")).toBeVisible();
 });
 
 test("repeated wrong passwords lock the account until it is reset", async ({ page }) => {

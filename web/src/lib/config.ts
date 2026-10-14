@@ -129,7 +129,7 @@ export type Permission = "backoffice" | "view" | "members" | "payments" | "setti
 const PERMS: Record<Role, Permission[]> = {
   member: [],
   super_admin: ["backoffice", "view", "members", "payments", "settings", "admins", "import", "export", "events", "announce"],
-  membership_admin: ["backoffice", "view", "members", "export", "announce"],
+  membership_admin: ["backoffice", "view", "members"], // no Announce or Export: both can't be undone, so super admins only (14 Oct 2026)
   finance: ["backoffice", "view", "payments", "export"],
   events_admin: ["backoffice", "events"],
 };

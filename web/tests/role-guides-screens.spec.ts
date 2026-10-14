@@ -16,7 +16,9 @@ const klDay = (offset: number) => new Date(Date.now() + 8 * 3_600_000 + offset *
 
 async function snap(page: Page, name: string, focus?: Locator) {
   fs.mkdirSync(OUT, { recursive: true });
-  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  // In dev, the blocked Vercel Analytics debug script can make addStyleTag throw once; try again
+  const hideDevPortal = () => page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  await hideDevPortal().catch(() => page.waitForTimeout(300).then(hideDevPortal));
   if (focus) await focus.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
   else await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(400);
@@ -174,18 +176,7 @@ test("membership admin screens", async ({ page }) => {
   await page.goto("/admin/renewals");
   await snap(page, "m11-renewals");
 
-  await page.goto("/admin/announce");
-  await page.getByLabel("Send to").selectOption("members");
-  await page.getByLabel("Subject").fill("Members save 10% at World Data Summit APAC");
-  await page.getByLabel("Message").fill("Dear member,\n\nDAMA is a media partner of World Data Summit APAC on 29–30 October in Kuala Lumpur.\n\nDetails and your discount are on dama.org.my.");
-  await page.getByLabel("Send this email now").check();
-  await snap(page, "m12-announce", page.getByRole("button", { name: "Send announcement" }));
-  await page.getByRole("button", { name: "Send announcement" }).click();
-  await expect(page.getByText(/^Sent to \d+ of \d+ recipients\./)).toBeVisible();
-  await snap(page, "m13-announce-sent", page.getByText(/^Sent to/));
-
-  await page.goto("/admin/export");
-  await snap(page, "m14-export");
+  // Announce and Export are super admin only (14 Oct 2026), so the guide has no screens for them
   await page.goto("/admin/emails");
   await snap(page, "m15-email-log");
 });

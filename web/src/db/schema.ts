@@ -5,6 +5,8 @@ import type { Category, Role, TierCode } from "@/lib/config";
 const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 // Money is stored in sen (RM 1.00 = 100)
+// Every table has row-level security on with no policies: only the server's own login (the table owner) can use
+// them, never Supabase's public API roles. New tables need .enableRLS() too (see drizzle/0005_lock_down_tables.sql).
 
 export const users = pgTable("users", {
   id: id(),
@@ -22,14 +24,14 @@ export const users = pgTable("users", {
   consentVersion: text("consent_version"),
   disabled: boolean("disabled").notNull().default(false),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(), // sha256 of the cookie token
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const authTokens = pgTable("auth_tokens", {
   id: id(),
@@ -39,7 +41,7 @@ export const authTokens = pgTable("auth_tokens", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export type PipelineStatus =
   | "new_lead"
@@ -70,7 +72,7 @@ export const organisations = pgTable("organisations", {
   pipelineStatus: text("pipeline_status").$type<PipelineStatus>().notNull().default("new_lead"),
   assignedPicId: uuid("assigned_pic_id").references(() => users.id),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const orgNotes = pgTable("org_notes", {
   id: id(),
@@ -78,7 +80,7 @@ export const orgNotes = pgTable("org_notes", {
   authorId: uuid("author_id").references(() => users.id),
   body: text("body").notNull(),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const orgDocuments = pgTable("org_documents", {
   id: id(),
@@ -88,7 +90,7 @@ export const orgDocuments = pgTable("org_documents", {
   fileName: text("file_name").notNull(),
   uploadedBy: uuid("uploaded_by").references(() => users.id),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export type MembershipStatus = "pending" | "active" | "grace" | "expired" | "suspended" | "rejected" | "cancelled";
 export type EligibilityStatus = "not_required" | "pending" | "approved" | "rejected";
@@ -122,7 +124,7 @@ export const memberships = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("memberships_user_idx").on(t.userId), index("memberships_org_idx").on(t.organisationId)],
-);
+).enableRLS();
 
 export type OrderStatus = "awaiting_payment" | "pending_verification" | "part_paid" | "paid" | "cancelled";
 
@@ -147,7 +149,7 @@ export const orders = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("orders_membership_idx").on(t.membershipId)],
-);
+).enableRLS();
 
 export type PaymentStatus = "submitted" | "verified" | "rejected";
 export type PaymentMethod = "bank_transfer" | "duitnow" | "cheque" | "cash" | "other";
@@ -172,7 +174,7 @@ export const payments = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("payments_order_idx").on(t.orderId), index("payments_status_idx").on(t.status)],
-);
+).enableRLS();
 
 export type ReceiptSnapshot = {
   kind?: "membership" | "event"; // absent on older (membership) receipts
@@ -207,7 +209,7 @@ export const receipts = pgTable("receipts", {
   paymentId: uuid("payment_id").notNull().unique().references(() => payments.id, { onDelete: "cascade" }),
   data: jsonb("data").$type<ReceiptSnapshot>().notNull(),
   issuedAt: createdAt(),
-});
+}).enableRLS();
 
 export const seats = pgTable(
   "seats",
@@ -223,7 +225,7 @@ export const seats = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("seats_membership_no_idx").on(t.membershipId, t.seatNo), index("seats_email_idx").on(sql`lower(${t.email})`)],
-);
+).enableRLS();
 
 export const seatRequests = pgTable("seat_requests", {
   id: id(),
@@ -238,19 +240,19 @@ export const seatRequests = pgTable("seat_requests", {
   decidedBy: uuid("decided_by").references(() => users.id),
   decidedAt: timestamp("decided_at", { withTimezone: true }),
   createdAt: createdAt(),
-});
+}).enableRLS();
 
 export const counters = pgTable("counters", {
   key: text("key").primaryKey(), // e.g. member:I:26, receipt:2026
   value: integer("value").notNull().default(0),
-});
+}).enableRLS();
 
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: uuid("updated_by").references(() => users.id),
-});
+}).enableRLS();
 
 export const emailLog = pgTable(
   "email_log",
@@ -267,7 +269,7 @@ export const emailLog = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("email_log_membership_idx").on(t.membershipId)],
-);
+).enableRLS();
 
 export const renewalReminders = pgTable(
   "renewal_reminders",
@@ -279,7 +281,7 @@ export const renewalReminders = pgTable(
     sentAt: createdAt(),
   },
   (t) => [uniqueIndex("renewal_reminders_unique").on(t.membershipId, t.endDate, t.kind)],
-);
+).enableRLS();
 
 export const auditLog = pgTable(
   "audit_log",
@@ -293,7 +295,7 @@ export const auditLog = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("audit_entity_idx").on(t.entityType, t.entityId)],
-);
+).enableRLS();
 
 // Recent login / password-reset / sign-up attempts, used for rate limiting (pruned daily)
 export const authAttempts = pgTable(
@@ -305,7 +307,7 @@ export const authAttempts = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("auth_attempts_lookup_idx").on(t.kind, t.key, t.createdAt)],
-);
+).enableRLS();
 
 // ---------- events ----------
 
@@ -345,7 +347,7 @@ export const events = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("events_starts_idx").on(t.startsAt)],
-);
+).enableRLS();
 
 export const eventRegistrations = pgTable(
   "event_registrations",
@@ -369,7 +371,7 @@ export const eventRegistrations = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("event_registrations_event_user_idx").on(t.eventId, t.userId), index("event_registrations_status_idx").on(t.status)],
-);
+).enableRLS();
 
 export const eventPayments = pgTable(
   "event_payments",
@@ -390,7 +392,7 @@ export const eventPayments = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("event_payments_status_idx").on(t.status), index("event_payments_registration_idx").on(t.registrationId)],
-);
+).enableRLS();
 
 export type User = typeof users.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;

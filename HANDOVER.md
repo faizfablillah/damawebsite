@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 11 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 14 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -189,12 +189,14 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
 
 ## 9. Open items / next steps
 
-### Where things stand (14 Oct 2026, end of day)
+### Where things stand (14 Oct 2026, evening)
 
-- **Members:** 43 active (41 individual, 1 student, 1 corporate); 8 applications pending (7 individual, 1 Corporate Plus). 1 payment waiting for Peggy (Lau Swee Kiong, RM 150, sent 14 Oct 7:21 am). 56 accounts, about 206 Pioneer spots left, 0 failed emails ever. No event registrations yet. Admin roles still only admin@ (super admin) and Peggy (Finance).
-- **Supabase security alert: resolved (14 Oct); post-fix upload check still pending.** Data API switched off, every table locked (migration `0005_lock_down_tables`, commit 0cca292); Security Advisor now 0 errors, 0 warnings. The 21 "Info" notes ("RLS enabled, no policy") are intentional: leave them, don't add policies. No evidence of misuse was found in the available logs (dates in Done history). **No file has been uploaded through the website since the fix** (last payment proof 14 Oct 07:21 MYT, lock applied ~09:00 MYT). The nightly backup uses the same storage code, credentials and bucket (`putObject` in `src/lib/storage.ts`) but not the website's upload form, file checks or record-saving, so a good backup only partly verifies uploads. Proposed check (needs Faiz's OK): as admin@, create a **draft** event with a small image (drafts never show publicly, no emails are sent), confirm the image appears, then leave it as a hidden draft or remove it with Faiz's approval.
-- **To report separately on 15 Oct, with evidence:** (1) nightly backup (new `backups/` file + size); (2) 7 am daily job (job/alert result, emails sent, failures); (3) 06:00 Hermes brief (Faiz confirms it arrived; `hermes_brief_reader` activity in the database); (4) website upload (a real or test upload after the fix, file present and its record saved). **No further production changes without Faiz's OK.**
-- **Next (carried over):** follow up the unpaid applications (Corporate Plus first); Finance guide slide for the student-first order + Reopen and resend Peggy the PDF; join video post (planned Wed 14 Oct); Thu/Fri Poster 3; Eva's Membership admin role (~19 Oct, or earlier).
+- **Members (18:53 MYT):** 45 active (43 individual, 1 student, 1 corporate); 10 applications pending (9 individual, 1 Corporate Plus). 1 payment waiting for Peggy (RM 150, sent 14 Oct 18:24 MYT). 60 accounts, 204 Pioneer spots left, 0 failed emails ever, 53 emails sent in the last 24 h. No event registrations yet.
+- **Admin roles:** admin@ (super admin), Peggy (Finance), **Eva = Membership admin since 14 Oct evening** (evangelynpoovan@gmail.com, IMYSL26-0009). Student checks, corporate leads and seat requests now email Eva as well as admin@. Faiz sent her the updated guide (deck PDF + video) on WhatsApp.
+- **Membership admin trimmed (14 Oct, commit 5b6ec5a, live 20:12 MYT):** no **Announce** and no **Export** (both reach every member and can't be undone), so they are super admin only. Everything else stays: students, member records (resend emails, suspend/cancel), corporate pipeline, seats, renewals, email log, run daily tasks. The Membership admin deck and video were updated the same evening (see §1).
+- **Supabase security alert: resolved (14 Oct), upload verified.** Data API switched off, every table locked (migration `0005_lock_down_tables`, commit 0cca292); Security Advisor 0 errors, 0 warnings. The 21 "Info" notes ("RLS enabled, no policy") are intentional: leave them, don't add policies. No evidence of misuse was found in the available logs (dates in Done history). **Post-fix upload verified:** a member's payment proof (PDF, 14,647 bytes) was submitted 14 Oct 18:24 MYT; the payment record was saved and the file is in the bucket (checked read-only). The draft-event test is no longer needed.
+- **To report separately on 15 Oct, with evidence:** (1) nightly backup (new `backups/` file + size; first one after the lock); (2) 7 am daily job (job/alert result, emails sent, failures; Eva's first morning summary if anything waits for her); (3) 06:00 Hermes brief (Faiz confirms it arrived; `hermes_brief_reader` activity in the database). **No production changes without Faiz's OK.**
+- **Next (carried over):** follow up the unpaid applications (Corporate Plus first); Finance guide slide for the student-first order + Reopen and resend Peggy the PDF; join video post (planned Wed 14 Oct); Thu/Fri Poster 3; Events admin roles for Iffah and Quak when ready.
 
 ### Where things stood (13 Oct 2026, end of day)
 
@@ -212,7 +214,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 | When | What | Who |
 |---|---|---|
 | Done 11 Oct | Board members registered and paid: 9 members, all verified | Board · Faiz verified |
-| Next | Give roles in Admin → Admins → "Give or change a role": Eva → Membership admin, Iffah and Quak → Events admin (Peggy → Finance done 11 Oct). Then send each their guide as a Drive PDF link | Faiz (as admin@dama.org.my) |
+| Next | Give roles in Admin → Admins → "Give or change a role": Iffah and Quak → Events admin (Peggy → Finance done 11 Oct; Eva → Membership admin done 14 Oct). Then send each their guide as a Drive PDF link | Faiz (as admin@dama.org.my) |
 | Before Mon 12 Oct | Board agrees **when early-bird pricing (RM 150) ends**; switch to RM 350 in Admin → Settings on that date | Board |
 | Sun 11 Oct | Faiz asked Iffah to add him as **Content admin** on the DAMA LinkedIn page (Admin tools → Manage admins → Add admin); no reply yet. Fallback: post from Faiz's personal profile tagging @DAMA, board reshares, the page reshares later | Faiz / Iffah |
 | Mon 12 Oct, 9 am | **Public launch**: LinkedIn post with **Poster 1** + the drafted launch text; board reshares; WhatsApp groups/Status with **Poster 2**. Ask DAMA International to list https://dama.org.my | Faiz / Programs |
@@ -267,6 +269,7 @@ Known limitations: changing tier means a new application and new Member ID; corp
 
 ### Done (history)
 
+- [x] 14 Oct — **Eva → Membership admin**, after trimming the role: Membership admins lost Announce and Export (super admin only; test added; commits 5b6ec5a + 458e8ba, live 20:12 MYT). Membership admin deck (15 slides) and video (78 s) re-made with new screens; students slides now say student check first. Post-fix upload verified with a real payment proof (18:24 MYT).
 - [x] 13 Oct — **Announce: optional image + clickable links.** Admin → Announce takes an optional image (JPG/PNG/WEBP, ≤ 1 MB), carried inside the email (inline `cid:` attachment) under the title; web addresses in announcements and attendee emails become links. First use: WDS banner.
 - [x] 13 Oct — **Reopen payment** (super admins): a membership payment rejected by mistake can be put back in Payments → To verify from Payments → Rejected or the member record ("Reopen payment"), with its original proof, date and reference; Finance is emailed again, the member is not (tell them yourself). Audit action `payment.reopened`. Not possible once the order is paid/closed or the application rejected.
 - [x] 13 Oct — **Students: student check first, then Finance.** A student's payment is held back from Finance until a Membership admin (or super admin) approves the student document: Admin → Payments shows it as "Waiting for student check" (with the document link, no Verify button), the "Payment to verify" email and the 7 am summary leave it out, and approving the document sends Finance the email. Rejecting the document marks the payment "Student check not approved — refund due" and the student's email says the money will be refunded (refund by hand from the AmBank account). Why: on 13 Oct a student payment was rejected for a "missing" document that had in fact been uploaded — Finance couldn't see it.

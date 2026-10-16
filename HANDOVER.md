@@ -199,6 +199,9 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
   4. *Uploads:* 6 payment proofs saved to the bucket in the 48 h to 16 Oct 05:27 MYT.
 - **Launch week done:** join video posted on LinkedIn 14 Oct; Poster 3 reminder posted (15/16 Oct).
 - **Finance guide:** new slide 10 "Students come to you after their check" (16 Oct). Next: Faiz exports the deck as PDF (Share → Export) and resends it to Peggy.
+- **Corporate question from Sharala (for CADS):** answered with a WhatsApp reply + a one-page infographic `DAMA Media Assets/Corporate infographic/DAMA Corporate Membership.png` (local; 1080×1350, tiers by headcount, 3 steps, "Already an individual member?" box, QR to /join; source + render script in `source/`). Facts as the system works: the contact person counts as a member once payment is verified, without taking a seat; each seat holder gets their own Member ID (`…/S03`); an existing individual membership is not merged or refunded (keep it until it ends, take a seat, don't renew). Any credit for her individual fee would need a board decision.
+- **CDMP Study Cohort research (Year One programme 2):** 17 chapters' study groups, Pay-If-You-Pass rules and current exam facts in `DAMA - Chapter Research/cdmp-cohort-research-2026-10-16.md` (local). Input given to Faiz: plan backwards from a PIYP sitting (one per chapter per year, min 5 candidates, register 30–60 days ahead, 2 DAMA-member proctors, chapter gets USD 50 per paid exam; confirm eligibility with DAMA International); 8 weekly 90-min online sessions + Week 0 + review; free for members, cap ~25–30, Pioneer priority week; line up 3–5 CDMP-holding facilitators before announcing; board to decide CADS's role openly (Sharala is VP Education and CADS sells CDMP training); free "Is CDMP for you?" webinar Nov/Dec as a funnel.
+- **Knowledge Hub mockup (Datin's idea):** study groups as communities of practice that codify applied knowledge into a website repository. Mockup https://claude.ai/artifact/GrZGdtkMqGL2KewPi6KiH4 (private; local copy `DAMA - Chapter Research/knowledge-hub-mockup/`): members-only library tagged by the 11 DMBOK areas, one-page Practice Note format (problem, setting, what we did, what we learned, DMBOK link, downloads, contributors, reviewed by), visitor view with a Join prompt. Faiz chose the simple card design (navy = read, teal = use). Proposed build when approved: like News (Markdown entries, membersOnly), files in the private bucket; later a portal submission + "Knowledge editor" role. Rules to agree first: no DMBOK text copied, no company/client names + contributor sign-off, licence. **Not built; waits for the board.**
 - **Next:** follow up the unpaid applications (Corporate Plus first); Events admin roles for Iffah and Quak when ready; ~17 Oct housekeeping (below).
 
 ### Where things stood (14 Oct 2026, evening)
@@ -246,6 +249,7 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 - **Perk 3** (a say in 2027 activities) is **not built on purpose**: in Dec 2026 / Jan 2027 send Pioneers a Google/Microsoft Form (export → pioneer_member = yes for the list).
 - The offer is advertised on `/membership` (banner under the plans) and `/join`; both **hide themselves after the cutoff** (`data-until` in membership.html via main.js; `pioneerOfferOpen()` on /join). The badge stays for good.
 - Year One Programme deck (six programmes): the board approved the Pioneer perks only; the website "Year One Programme" strip is **not** built (waiting for the board).
+- **CDMP Study Cohort:** research and recommendations (16 Oct) in §9 "Where things stand (16 Oct)" and `DAMA - Chapter Research/cdmp-cohort-research-2026-10-16.md`. **Knowledge Hub** (communities of practice → members' library) mocked up 16 Oct, not built.
 - DAMA International's chapter list shows only our LinkedIn, not dama.org.my — include it in the listing request.
 
 ### Launch-week cautions
@@ -281,6 +285,7 @@ Known limitations: changing tier means a new application and new Member ID; corp
 
 ### Done (history)
 
+- [x] 16 Oct — Corporate infographic for Sharala/CADS; CDMP cohort research; Knowledge Hub mockup (not built).
 - [x] 16 Oct — Finance guide slide for the student-first order and Reopen payment; 15 Oct checks reported (backup, 7 am job, Hermes reads, uploads). Launch-week posts all done (video 14 Oct, Poster 3).
 - [x] 14 Oct — **Eva → Membership admin**, after trimming the role: Membership admins lost Announce and Export (super admin only; test added; commits 5b6ec5a + 458e8ba, live 20:12 MYT). Membership admin deck (15 slides) and video (78 s) re-made with new screens; students slides now say student check first. Post-fix upload verified with a real payment proof (18:24 MYT).
 - [x] 13 Oct — **Announce: optional image + clickable links.** Admin → Announce takes an optional image (JPG/PNG/WEBP, ≤ 1 MB), carried inside the email (inline `cid:` attachment) under the title; web addresses in announcements and attendee emails become links. First use: WDS banner.

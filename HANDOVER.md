@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 14 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 16 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -20,7 +20,7 @@ This file is the single place to pick the project up again: what exists, why it 
 | "Join DAMA Malaysia" one-pager | `DAMA Media Assets/How to Join one-pager/` (local) | A4 PDF for print + PNG for posting: why join, the three tiers, six steps and a QR code to dama.org.my/join. Source HTML in `source/` (rendered with Edge via Playwright). Made 10 Oct 2026. |
 | Launch + WDS post drafts | `DAMA Media Assets/Launch and WDS posts.md` (local) | LinkedIn, WhatsApp and member-email drafts for the 12 Oct launch and the 13 Oct WDS post, plus the DAMA International listing request. |
 | Launch posters | `Poster 1.jpeg`, `Poster 2.jpeg`, `Poster 3.jpeg` in the repo root (git-ignored, made by Faiz 11 Oct) | 1024×1280 (4:5). 1 = KL skyline + laptop (LinkedIn launch post), 2 = dark + phone (WhatsApp / Status / Instagram), 3 = light + phone "Learn. Connect. Grow." (end-of-week reminder). Screens match the real homepage; the tiny logo text inside the device screens is AI-garbled but unreadable at normal size. |
-| Finance guide (deck + video) | Deck https://claude.ai/artifact/SQiUnmgDTV1HVz2XYYjMMK (private; Share → Export → PDF for Peggy) · video in `DAMA Media Assets/Finance guide video/` (local) | 16 slides + 71 s video for the Finance role: daily routine, matching against the AmBank statement, verify, part payment, reject, corporate and event payments, receipts, recording outside payments, exports, tricky cases. Routine slide updated 11 Oct for the admin emails (the video's "once a day, open Payments" still holds). Screens from `GUIDE=1 npx playwright test tests/finance-guide-screens.spec.ts`. Made 10 Oct 2026. |
+| Finance guide (deck + video) | Deck https://claude.ai/artifact/SQiUnmgDTV1HVz2XYYjMMK (private; Share → Export → PDF for Peggy) · video in `DAMA Media Assets/Finance guide video/` (local) | 17 slides + 71 s video for the Finance role: daily routine, matching against the AmBank statement, verify, part payment, reject, corporate and event payments, receipts, recording outside payments, exports, tricky cases. Routine slide updated 11 Oct for the admin emails (the video's "once a day, open Payments" still holds). Slide "Students come to you after their check" added 16 Oct (student check first, "Waiting for student check", Reopen payment via a super admin, refund due); the video doesn't cover it. Screens from `GUIDE=1 npx playwright test tests/finance-guide-screens.spec.ts`. Made 10 Oct 2026. |
 | "How to join" explainer video | `DAMA Media Assets/How to Join video/` (local only, git-ignored) | 81 s, landscape 16:9 + vertical 9:16, Kokoro voiceover (af_heart) + captions, event photos, original music + effects, made 10 Oct 2026 with HyperFrames 0.8.77. Source and re-render steps in that folder's README.txt. Opening line says "six simple steps" (Datin asked to drop "10 minutes" because payment checks take up to 3 business days). |
 | Year One Programme proposal (deck) | https://claude.ai/artifact/7S5FUJ6fr2oBsZzageZWQ4 (private Slides artifact) · research notes in `DAMA - Chapter Research/` (local, git-ignored) | 21 slides made 11 Oct 2026 from a study of all 74 DAMA chapter websites on dama.org's chapter list: pricing, why people pay, programme rhythm, peers (Thailand, Japan, Malta, Egypt), six proposed programmes (Monthly Data Talk, CDMP Study Cohort, Data Leaders Roundtable, PDPA & Governance Circle, DAMA Malaysia Data Day ~Q2 2027, Students & Universities), the **Pioneer Member** offer and five board decisions. Timings in quarters, not dates. Board approved the **Pioneer Member** perks (live on the site); the six programmes still wait for the board. |
 | Board walkthrough deck | https://claude.ai/artifact/J2zotetrS29KZq6A9HEooe (private Slides artifact) | 30 slides, made 5 Oct 2026: why/how it was built, the registration journey with screenshots, data storage and security, costs, next steps and board asks, Part 5 (added 6 Oct, **board only**: comparison with the earlier vendor quotation; details in `PRIVATE-CONTEXT.md`), technical appendix. Export to PowerPoint from the deck (Share → Export) and save it in the project root. Root `*.pptx` files are git-ignored. |
@@ -189,7 +189,19 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
 
 ## 9. Open items / next steps
 
-### Where things stand (14 Oct 2026, evening)
+### Where things stand (16 Oct 2026, midday)
+
+- **Members (11:47 MYT):** 50 active (48 individual, 1 student, 1 corporate); 9 applications with no payment yet (8 individual, 1 Corporate Plus). 0 payments waiting (Peggy verified 7 in the 48 h to 16 Oct 07:54 MYT). 65 accounts, 0 failed emails ever (372 sent), no event registrations yet. Roles unchanged: admin@ super admin, Peggy Finance, Eva Membership admin.
+- **Checks due 15 Oct, reported separately (read-only, 16 Oct):**
+  1. *Nightly backup:* `backups/dama-2026-10-15.json.gz` (75,263 bytes, 15 Oct 07:00:52 MYT) — the first after the lock — and `dama-2026-10-16.json.gz` (80,665 bytes, 16 Oct 07:00:54 MYT). One per night since 12 Oct, sizes growing with the data.
+  2. *7 am daily job:* "waiting for you" summaries sent 15 Oct 07:00 MYT (admin@, Eva — her first) and 16 Oct 07:00 MYT (Peggy, admin@, Eva); all sent, no failed emails in the email log. The job writes no audit row, so the summaries + backup are the evidence it ran.
+  3. *Hermes brief:* the `hermes_brief_reader` role has run its payments query 47 times and members query 39 times (pg_stat_statements, which has no per-run timestamps), so it is reading; whether the 06:00 brief arrived on 15/16 Oct is for Faiz to confirm.
+  4. *Uploads:* 6 payment proofs saved to the bucket in the 48 h to 16 Oct 05:27 MYT.
+- **Launch week done:** join video posted on LinkedIn 14 Oct; Poster 3 reminder posted (15/16 Oct).
+- **Finance guide:** new slide 10 "Students come to you after their check" (16 Oct). Next: Faiz exports the deck as PDF (Share → Export) and resends it to Peggy.
+- **Next:** follow up the unpaid applications (Corporate Plus first); Events admin roles for Iffah and Quak when ready; ~17 Oct housekeeping (below).
+
+### Where things stood (14 Oct 2026, evening)
 
 - **Members (18:53 MYT):** 45 active (43 individual, 1 student, 1 corporate); 10 applications pending (9 individual, 1 Corporate Plus). 1 payment waiting for Peggy (RM 150, sent 14 Oct 18:24 MYT). 60 accounts, 204 Pioneer spots left, 0 failed emails ever, 53 emails sent in the last 24 h. No event registrations yet.
 - **Admin roles:** admin@ (super admin), Peggy (Finance), **Eva = Membership admin since 14 Oct evening** (evangelynpoovan@gmail.com, IMYSL26-0009). Student checks, corporate leads and seat requests now email Eva as well as admin@. Faiz sent her the updated guide (deck PDF + video) on WhatsApp.
@@ -220,8 +232,8 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 | Mon 12 Oct, 9 am | **Public launch**: LinkedIn post with **Poster 1** + the drafted launch text; board reshares; WhatsApp groups/Status with **Poster 2**. Ask DAMA International to list https://dama.org.my | Faiz / Programs |
 | Mon 12 Oct onwards | Watch Admin → Email log and Admin → Payments daily. The daily job's alert email reports any failed emails | Faiz, Peggy |
 | Done 13 Oct | **WDS APAC 2026**: LinkedIn post + Admin → Announce → Active members (text drafted 9 Oct; run the 4 checks in the drafts file first). Summit is 29–30 Oct | Faiz / Programs |
-| Wed 14 Oct | LinkedIn: "six simple steps" how-to-join **video** (LinkedIn can't mix photos and video in one post) | Faiz / Programs |
-| Thu/Fri 15–16 Oct | Reminder post with **Poster 3**, optionally thanking the first members | Faiz / Programs |
+| Done 14 Oct | LinkedIn: "six simple steps" how-to-join **video** (LinkedIn can't mix photos and video in one post) | Faiz / Programs |
+| Done 15–16 Oct | Reminder post with **Poster 3**, optionally thanking the first members | Faiz / Programs |
 | When convenient | Old Gmail: forward info.damamalaysia@gmail.com → info@dama.org.my; give Eva access to info@ in Zoho | Faiz |
 | Done 11 Oct | **Finance guide sent to Peggy** (Drive PDF) with the Finance role. Join guide PDF on Drive replaced with the 11 Oct version | Faiz |
 
@@ -269,6 +281,7 @@ Known limitations: changing tier means a new application and new Member ID; corp
 
 ### Done (history)
 
+- [x] 16 Oct — Finance guide slide for the student-first order and Reopen payment; 15 Oct checks reported (backup, 7 am job, Hermes reads, uploads). Launch-week posts all done (video 14 Oct, Poster 3).
 - [x] 14 Oct — **Eva → Membership admin**, after trimming the role: Membership admins lost Announce and Export (super admin only; test added; commits 5b6ec5a + 458e8ba, live 20:12 MYT). Membership admin deck (15 slides) and video (78 s) re-made with new screens; students slides now say student check first. Post-fix upload verified with a real payment proof (18:24 MYT).
 - [x] 13 Oct — **Announce: optional image + clickable links.** Admin → Announce takes an optional image (JPG/PNG/WEBP, ≤ 1 MB), carried inside the email (inline `cid:` attachment) under the title; web addresses in announcements and attendee emails become links. First use: WDS banner.
 - [x] 13 Oct — **Reopen payment** (super admins): a membership payment rejected by mistake can be put back in Payments → To verify from Payments → Rejected or the member record ("Reopen payment"), with its original proof, date and reference; Finance is emailed again, the member is not (tell them yourself). Audit action `payment.reopened`. Not possible once the order is paid/closed or the application rejected.

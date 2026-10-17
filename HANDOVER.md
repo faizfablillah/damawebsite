@@ -1,6 +1,6 @@
 # DAMA Kuala Lumpur & Selangor — Project Handover
 
-_Last updated: 16 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
+_Last updated: 17 October 2026. Owner: Faiz Fablillah (VP Secretary, DAMA KL & Selangor)._
 
 This file is the single place to pick the project up again: what exists, why it was built this way, how to run and deploy it, and what is still open. Sensitive context (bank details, board discussions, personal contacts) is in `PRIVATE-CONTEXT.md`, which is **kept on the project computer only and never committed** (this repository is public).
 
@@ -189,7 +189,37 @@ Running cost: Supabase Pro ~USD 25/month (since 10 Oct 2026) + Zoho Mail Lite ~R
 
 ## 9. Open items / next steps
 
-### Where things stand (16 Oct 2026, midday)
+### Where things stand (17 Oct 2026, morning)
+
+- **Members (07:30 MYT):** 51 active (49 individual, 1 student, 1 corporate); 10 applications with no payment (8 individual, 1 Corporate Plus from 12 Oct, **1 new Corporate Small from 16 Oct**). 0 payments waiting. 66 accounts, 0 failed emails ever. Backup `dama-2026-10-17.json.gz` (83,234 bytes, 07:00 MYT); 7 am summaries sent to admin@ and Eva (none for Peggy: nothing waiting).
+- **Payment reminders, step 1, sent 17 Oct 08:00–08:01 MYT** to all 8 unpaid individuals (applied 12–14 Oct), from info@, after Faiz approved the preview: 8/8 sent, 0 failures, logged in Admin → Email log as `paymentReminder`. WhatsApp to the four from 12 Oct: Faiz, by hand. Next for this group: step 2 on ~21 Oct (day 7) for anyone still unpaid. First result: Mohamad Syazwan submitted his payment the same morning (7 unpaid left at ~09:00 MYT).
+- **Housekeeping done 17 Oct:** deleted the 10 Oct clean-up safety copy and `~/.hf-tts`.
+- **Reminder script:** `web/scripts/payment-reminders.mts` (preview by default, `--send` sends exactly the preview; usage at the top of the file). Payment-reminder automation (day 3/7/14 in the 7 am job + a "Send payment reminder" button) is **not** wanted yet; explain the plan to Faiz before building anything.
+- **Next, in order:**
+  1. Corporate follow-up (≈ RM 4,500): Corporate Plus (applied 12 Oct) and Corporate Small (16 Oct). Personal email or call from the corporate PIC (Eva/Faiz). Claude can pull the details read-only and draft emails; nothing sent without OK.
+  2. WhatsApp step 1 to the four who applied 12 Oct (Faiz, texts in the reminders preview).
+  3. ~~One push: handover + reminder script~~ done 17 Oct.
+  4. Finance deck PDF re-export to Peggy (if not done); Events admin roles for Iffah and Quak, ideally before WDS.
+  5. Sun 19 Oct: first monthly backup download (Admin → Export) to DAMA's Drive.
+  6. ~21 Oct: step 2 reminders for anyone still unpaid.
+  7. ~22 Oct: optional WDS APAC (29–30 Oct) reminder to members via Announce, in two batches under ~40/hour.
+  8. ~23 Oct: if the email log still shows no failures, delete the Entra app "DAMA website" and the `dama-website-senders` group.
+  - Waiting on the board: Year One Programme strip, Knowledge Hub, CADS's role in the CDMP cohort, TIN for receipts.
+
+### Unpaid applications: standard procedure (agreed 17 Oct 2026)
+
+The system sends the payment instructions once (on applying) and has **no automatic payment reminder**. Until one is built (not yet; Faiz to agree the plan first), the Membership admin (Eva; Faiz as backup) follows this for individual and student applications. Corporate applications are followed up by phone/email from the corporate PIC instead.
+
+| Step | When | Channel | Content |
+|---|---|---|---|
+| 0 | Day 0 | Automatic email | Amount, reference, portal link (exists) |
+| 1 | Day 3 | Email from info@ | "One step left": amount, **bank name, account name and number, the person's own reference**, portal link, Pioneer line while the offer is open, "reply if you're stuck" |
+| 2 | Day 7 | WhatsApp (personal) + the email again | Short: "Can we help you finish your membership?" |
+| 3 | Day 14 | Final email | "Your application stays open; here's how to finish when you're ready." Then stop chasing |
+
+Rules: at most 3 reminders per person; no false urgency (the honest hooks are the Pioneer spots, where a submitted payment holds a spot, and the RM 150 early bird to 31 Dec); one email per person, never a group email; keep under ~40 per hour (Zoho); every email is logged in Admin → Email log. On 17 Oct step 1 was sent by a one-off script that uses the site's own email sender (preview first, then send; it skips anyone who paid in between). Ask Claude to run it again for the next batch.
+
+### Where things stood (16 Oct 2026, midday)
 
 - **Members (11:47 MYT):** 50 active (48 individual, 1 student, 1 corporate); 9 applications with no payment yet (8 individual, 1 Corporate Plus). 0 payments waiting (Peggy verified 7 in the 48 h to 16 Oct 07:54 MYT). 65 accounts, 0 failed emails ever (372 sent), no event registrations yet. Roles unchanged: admin@ super admin, Peggy Finance, Eva Membership admin.
 - **Checks due 15 Oct, reported separately (read-only, 16 Oct):**
@@ -271,8 +301,8 @@ The system is **production-ready apart from the launch steps below**. Live at ht
 
 | When | Item |
 |---|---|
-| ~17 Oct 2026 | Delete the local clean-up safety copy `web/remove-accounts-backup-2026-10-10T01-40-13-468Z.json.gz` (personal data; Supabase Pro daily backups cover us by then) |
-| ~17 Oct 2026 | Delete `C:\Users\wanmoham\.hf-tts` (offline voice tool for the video) unless more video edits are planned |
+| ~~17 Oct 2026~~ | Done 17 Oct: deleted the local clean-up safety copy (10 Oct) |
+| ~~17 Oct 2026~~ | Done 17 Oct: deleted `~/.hf-tts` (offline voice tool; reinstall if more video edits are needed) |
 | ~19 Oct, then monthly | Download a backup from Admin → Export into DAMA's drive (not email) |
 | ~23 Oct 2026 | If Admin → Email log shows no failures, delete the Entra app "DAMA website" and the `dama-website-senders` group in the keppstone tenant |
 | ~Apr 2027 | Replace the placeholder **testimonials** with real member quotes (board decision 10 Oct 2026); review the older news write-ups |
